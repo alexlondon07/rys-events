@@ -1,0 +1,50 @@
+<?php
+
+use App\Http\Controllers\ReportController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+})->name('home');
+
+Route::middleware(['auth'])->group(function () {
+    Route::livewire('dashboard', 'pages::reports.index')->name('dashboard');
+
+    Route::livewire('informes/importar', 'pages::reports.import')
+        ->name('reports.import');
+
+    Route::get('informes/plantilla', function () {
+        return response()->download(
+            base_path('plantillas/plantilla_informe_rys.xlsx'),
+            'plantilla_informe_rys.xlsx',
+        );
+    })->name('reports.template');
+
+    Route::livewire('informes/{report}/editar', 'pages::reports.wizard')
+        ->name('reports.edit');
+
+    Route::livewire('biblioteca/plantillas', 'pages::templates.index')
+        ->name('templates.index');
+
+    Route::livewire('biblioteca/catalogo', 'pages::catalog.index')
+        ->name('catalog.index');
+
+    Route::get('informes/{report}', [ReportController::class, 'show'])
+        ->name('reports.show');
+
+    Route::get('informes/{report}/vista-previa', [ReportController::class, 'preview'])
+        ->name('reports.preview');
+
+    Route::get('informes/{report}/cargas/{import}/descargar', [ReportController::class, 'downloadImport'])
+        ->name('reports.imports.download');
+
+    Route::middleware('admin')->group(function () {
+        Route::livewire('empresa', 'pages::company.edit')->name('company.edit');
+        Route::livewire('usuarios', 'pages::users.index')->name('users.index');
+    });
+
+});
+
+require __DIR__.'/settings.php';
