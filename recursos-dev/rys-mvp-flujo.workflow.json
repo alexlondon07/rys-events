@@ -1,0 +1,94 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Flujo del MVP · Informes RYS",
+    "output": "recursos-dev/rys-mvp-flujo.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "importacion-excel",
+        "label": "Importar Excel",
+        "focus": ["access", "upload", "validate", "preview", "apply", "repair"]
+      },
+      {
+        "id": "evidencias-drive",
+        "label": "Fotos de Drive",
+        "focus": ["apply", "drive", "items"]
+      },
+      {
+        "id": "roles-y-pdf",
+        "label": "Permisos y PDF",
+        "focus": ["access", "admin", "items", "pdf", "review"]
+      }
+    ]
+  },
+  "lanes": [
+    { "id": "personas", "label": "Personas" },
+    { "id": "aplicacion", "label": "Aplicación RYS" },
+    { "id": "servicios", "label": "Procesamiento" },
+    { "id": "datos", "label": "Datos y archivos" },
+    { "id": "excepciones", "label": "Revisión de errores", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "acceso", "label": "Acceso y carga", "fromCol": 0, "toCol": 1 },
+    { "id": "validacion", "label": "Validar y confirmar", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "informe", "label": "Completar y entregar", "fromCol": 4, "toCol": 5 }
+  ],
+  "mainPath": ["access", "upload", "validate", "preview", "apply", "drive", "items", "pdf", "review"],
+  "nodes": [
+    { "id": "access", "lane": "personas", "col": 0, "type": "security", "label": "Ingresar", "sublabel": "admin o editor" },
+    { "id": "upload", "lane": "aplicacion", "col": 1, "type": "frontend", "label": "Subir Excel", "sublabel": "plantilla RYS" },
+    { "id": "validate", "lane": "servicios", "col": 2, "type": "backend", "label": "Validar libro", "sublabel": "hojas, filas y datos" },
+    { "id": "preview", "lane": "aplicacion", "col": 3, "width": 112, "type": "frontend", "label": "Vista de cambios", "sublabel": "altas, errores y conflictos" },
+    { "id": "apply", "lane": "datos", "col": 4, "width": 112, "type": "database", "label": "Aplicar cambios", "sublabel": "contrato + referencia" },
+    { "id": "drive", "lane": "servicios", "col": 4, "width": 112, "type": "cloud", "label": "Guardar fotos", "sublabel": "Drive al almacenamiento" },
+    { "id": "items", "lane": "aplicacion", "col": 5, "width": 112, "type": "frontend", "label": "Editar informe", "sublabel": "ítems, textos y orden" },
+    { "id": "pdf", "lane": "servicios", "col": 5, "type": "backend", "label": "Generar PDF", "sublabel": "borrador o final" },
+    { "id": "review", "lane": "personas", "col": 5, "type": "external", "label": "Descargar PDF", "sublabel": "revisar el informe" },
+    { "id": "admin", "lane": "personas", "col": 2, "width": 112, "type": "security", "label": "Usuarios y roles", "sublabel": "solo administradores" },
+    { "id": "repair", "lane": "excepciones", "col": 3, "width": 112, "type": "backend", "label": "Corregir Excel", "sublabel": "hoja y fila indicadas" }
+  ],
+  "edges": [
+    { "from": "access", "to": "upload", "label": "abre importación" },
+    { "from": "upload", "to": "validate", "label": "lee plantilla versionada" },
+    { "from": "validate", "to": "preview", "label": "muestra resultados" },
+    { "from": "preview", "to": "apply", "label": "confirma sin borrar vacíos", "variant": "emphasis" },
+    { "from": "apply", "to": "drive", "label": "encola sincronización" },
+    { "from": "drive", "to": "items", "label": "asocia fotos al ítem" },
+    { "from": "items", "to": "pdf", "label": "incluye fotos y leyendas" },
+    { "from": "pdf", "to": "review", "label": "publica descarga" },
+    { "from": "validate", "to": "repair", "label": "si hay errores bloqueantes", "variant": "security" },
+    { "from": "repair", "to": "upload", "label": "volver a cargar" },
+    { "from": "access", "to": "admin", "label": "si el rol es administrador", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Reglas de importación",
+      "items": [
+        "El contrato identifica el informe y ref identifica cada ítem.",
+        "Las celdas vacías no eliminan información existente.",
+        "La vista previa explica errores, cambios y conflictos antes de aplicar."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Evidencia y PDF",
+      "items": [
+        "Las fotos de Drive se copian al almacenamiento del sistema.",
+        "La sincronización incremental conserva las fotos ya importadas.",
+        "Un borrador puede generarse antes de completar fotos y narrativas."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Acceso",
+      "items": [
+        "El rol administrador gestiona usuarios y permisos.",
+        "El rol editor trabaja con informes.",
+        "Cada cambio conserva quién lo hizo y cuándo."
+      ]
+    }
+  ]
+}
