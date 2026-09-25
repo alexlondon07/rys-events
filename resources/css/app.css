@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Archivo', 'Helvetica Neue', sans-serif;
+
+    --color-rys-ink: #17150f;
+    --color-rys-sidebar: #0f0e0b;
+    --color-rys-canvas: #f3f1ec;
+    --color-rys-border: #e3ded3;
+    --color-rys-muted: #5f584a;
+    --color-rys-gold: #c9a043;
+    --color-rys-gold-text: #7f5c12;
+    --color-rys-gold-soft: #f6eedb;
+    --color-rys-success: #2c7549;
+    --color-rys-warning: #8f520a;
+    --color-rys-error: #a8261d;
+
+    --color-zinc-50: #fafafa;
+    --color-zinc-100: #f5f5f5;
+    --color-zinc-200: #e5e5e5;
+    --color-zinc-300: #d4d4d4;
+    --color-zinc-400: #a3a3a3;
+    --color-zinc-500: #737373;
+    --color-zinc-600: #525252;
+    --color-zinc-700: #404040;
+    --color-zinc-800: #262626;
+    --color-zinc-900: #171717;
+    --color-zinc-950: #0a0a0a;
+
+    --color-accent: var(--color-rys-ink);
+    --color-accent-content: var(--color-rys-ink);
+    --color-accent-foreground: var(--color-white);
+}
+
+.font-display {
+    font-family: var(--font-display);
+}
+
+@layer theme {
+    .dark {
+        --color-accent: var(--color-white);
+        --color-accent-content: var(--color-white);
+        --color-accent-foreground: var(--color-neutral-800);
+    }
+}
+
+@layer base {
+
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply  !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
+
+/*
+ * El sistema visual aprobado para RYS es deliberadamente claro. Flux conserva
+ * la preferencia oscura del navegador en localStorage, así que fijamos aquí el
+ * contraste de los controles del área autenticada para que nunca queden texto
+ * gris sobre campos transparentes.
+ */
+html[data-theme='rys'] {
+    color-scheme: light;
+    --color-accent: #17150f;
+    --color-accent-content: #17150f;
+    --color-accent-foreground: #fff;
+}
+
+html[data-theme='rys'] input[data-flux-control],
+html[data-theme='rys'] textarea[data-flux-control],
+html[data-theme='rys'] select[data-flux-control] {
+    background-color: #fff !important;
+    border-color: #d3cbbb !important;
+    color: #17150f !important;
+}
+
+html[data-theme='rys'] input[data-flux-control]::placeholder,
+html[data-theme='rys'] textarea[data-flux-control]::placeholder {
+    color: #7b7466 !important;
+}
+
+html[data-theme='rys'] [data-flux-label] {
+    color: #17150f !important;
+}
+
+html[data-theme='rys'] [data-flux-button].bg-transparent {
+    color: #17150f !important;
+}
+
+/*
+ * El menú lateral es oscuro. Flux usa por defecto texto gris oscuro que se
+ * vuelve invisible al pasar el mouse; forzamos un contraste claro y un fondo
+ * de hover visible.
+ */
+html[data-theme='rys'] [data-flux-sidebar-item] {
+    color: #cfc8b8 !important;
+}
+
+html[data-theme='rys'] [data-flux-sidebar-item]:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+}
+
+html[data-theme='rys'] [data-flux-sidebar-item][data-current] {
+    background-color: #ffffff !important;
+    color: #17150f !important;
+}
+
+html[data-theme='rys'] [data-flux-sidebar-item] svg {
+    color: currentColor !important;
+}
+
+html[data-theme='rys'] [data-flux-sidebar-brand] {
+    color: #ffffff !important;
+}
+
+html[data-theme='rys'] [data-flux-sidebar-brand] > div:last-child {
+    color: #ffffff !important;
+}
+
+html[data-theme='rys'] [data-flux-sidebar-group] {
+    color: #8c8577 !important;
+}
+
+/* \[:where(&)\]:size-4 {
+    @apply size-4;
+} */
