@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('reports.imports.download');
 
     Route::post('informes/{report}/pdf', [ReportController::class, 'generatePdf'])
+        ->middleware('throttle:6,1')
         ->name('reports.pdf.generate');
 
     Route::get('informes/{report}/pdf', [ReportController::class, 'downloadPdf'])

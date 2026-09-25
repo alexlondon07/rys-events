@@ -244,6 +244,21 @@ new #[Title('Editar informe')] class extends Component {
             return;
         }
 
+        try {
+            $this->validate([
+                "uploads.{$index}.*" => ['image', 'mimes:jpg,jpeg,png,webp,heic', 'max:10240'],
+            ], [
+                "uploads.{$index}.*.image" => 'Solo se permiten imágenes.',
+                "uploads.{$index}.*.mimes" => 'Formato no permitido (use JPG, PNG, WEBP o HEIC).',
+                "uploads.{$index}.*.max" => 'Cada imagen debe pesar menos de 10 MB.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->uploads[$index] = [];
+            Flux::toast(variant: 'danger', text: collect($exception->errors())->flatten()->first() ?? 'Archivo no válido.');
+
+            return;
+        }
+
         $stored = $store->handle($this->itemAt($index), $files);
 
         $this->uploads[$index] = [];
@@ -523,6 +538,14 @@ new #[Title('Editar informe')] class extends Component {
             return;
         }
 
+        $this->validate([
+            'cover' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ], [
+            'cover.image' => 'La portada debe ser una imagen.',
+            'cover.mimes' => 'Formato no permitido (use JPG, PNG o WEBP).',
+            'cover.max' => 'La portada debe pesar menos de 5 MB.',
+        ]);
+
         $report = $this->report();
         $path = "reports/{$report->id}/cover/".Str::uuid().'.jpg';
 
@@ -573,6 +596,13 @@ new #[Title('Editar informe')] class extends Component {
             && Report::query()->where('contract_number', $this->contract_number)->whereKeyNot($report->id)->exists()) {
             $this->contract_number = (string) $report->contract_number;
             Flux::toast(variant: 'danger', text: 'Ese número de contrato ya existe.');
+
+            return;
+        }
+
+        if (trim($this->cover_url) !== '' && filter_var(trim($this->cover_url), FILTER_VALIDATE_URL) === false) {
+            $this->cover_url = (string) $report->cover_url;
+            Flux::toast(variant: 'danger', text: 'El enlace de portada no es válido.');
 
             return;
         }
@@ -684,13 +714,13 @@ new #[Title('Editar informe')] class extends Component {
         </div>
     </header>
 
-    <nav class="grid overflow-hidden rounded-xl border border-[#D3CBBB] bg-white sm:grid-cols-3 lg:grid-cols-6">
+    <nav class="flex overflow-x-auto rounded-xl border border-[#D3CBBB] bg-white sm:grid sm:grid-cols-3 sm:overflow-hidden lg:grid-cols-6">
         @foreach ([1 => 'Contrato', 2 => 'Evento', 3 => 'Artísticos', 4 => 'Técnico', 5 => 'Cierre', 6 => 'Revisión'] as $number => $label)
             <button
                 type="button"
                 wire:click="goToStep({{ $number }})"
                 @class([
-                    'flex items-center gap-2 border-b border-[#E3DED3] px-4 py-3 text-left text-sm font-semibold transition last:border-0 sm:border-e',
+                    'flex shrink-0 items-center gap-2 whitespace-nowrap border-e border-[#E3DED3] px-4 py-3 text-left text-sm font-semibold transition last:border-e-0 sm:shrink',
                     'bg-[#17150F] text-white' => $step === $number,
                     'text-[#5F584A] hover:bg-[#F3F1EC]' => $step !== $number,
                 ])

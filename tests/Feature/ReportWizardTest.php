@@ -229,6 +229,31 @@ class ReportWizardTest extends TestCase
         );
     }
 
+    public function test_non_image_photo_uploads_are_rejected(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('uploads.0', [UploadedFile::fake()->create('documento.pdf', 100, 'application/pdf')])
+            ->call('uploadPhotos', 0);
+
+        $this->assertSame(0, ReportItem::where('ref', 'ART-01')->firstOrFail()->photos()->count());
+    }
+
+    public function test_non_image_cover_is_rejected(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('cover', UploadedFile::fake()->create('documento.pdf', 100, 'application/pdf'))
+            ->call('uploadCover')
+            ->assertHasErrors('cover');
+
+        $this->assertNull($this->report->fresh()->cover_path);
+    }
+
     public function test_finalizing_requires_conclusion_and_signer(): void
     {
         Livewire::actingAs($this->user)
