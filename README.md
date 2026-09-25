@@ -44,7 +44,7 @@ MVP en desarrollo activo. Lo construido está probado (`pint`, `phpstan`, `php a
 | Biblioteca: plantillas de texto y catálogo de ítems | ✅ |
 | Evidencia fotográfica: subida local (optimizada) y enlaces de Google Drive | ✅ |
 | Trazabilidad (bitácora de cambios por campo) | ✅ |
-| Generación de PDF en cola | ⏳ (hoy hay vista previa imprimible) |
+| Generación de PDF con la plantilla oficial (Chrome headless) | ✅ |
 | Exportar el informe a Excel | ⏳ |
 
 ---
@@ -67,6 +67,7 @@ MVP en desarrollo activo. Lo construido está probado (`pint`, `phpstan`, `php a
 - Composer 2
 - Node 20+ / npm
 - MySQL 8 (o MariaDB)
+- **Google Chrome o Chromium** (para generar el PDF) y `puppeteer` (se instala con `npm install`)
 
 ---
 
@@ -123,6 +124,8 @@ Notas:
   petición) y no con `Storage::url()`.
 - El usuario administrador se crea/actualiza con el seeder (`DatabaseSeeder`).
 - El **tema es claro fijo** (la identidad de marca no tiene modo oscuro).
+- Para el PDF, configure `LARAVEL_PDF_CHROME_PATH` con la ruta a Chrome/Chromium
+  (en macOS: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`).
 
 ---
 
@@ -167,6 +170,9 @@ composer test                  # lint:check + types:check + tests
 - **Importación desde Excel** por partes (ver [flujos](#flujos-clave)).
 - **Asistente de edición de 6 pasos** con autoguardado, navegación libre y checklist.
 - **Vista previa imprimible** con la plantilla visual del informe.
+- **Generar / Descargar PDF**: renderiza la plantilla con Chrome headless
+  (`spatie/laravel-pdf` + `spatie/browsershot`) y guarda el archivo en el informe.
+  Requiere Chrome/Chromium instalado (ver [Requisitos](#requisitos)).
 
 ### Biblioteca
 - **Plantillas de texto** con variables (`{municipio}`, `{departamento}`, `{evento}`,
@@ -342,7 +348,7 @@ php artisan test       # PHPUnit (Feature + Unit)
 
 ## Pendientes
 
-- Generación de **PDF en cola** (spatie/laravel-pdf + Chromium) con la plantilla oficial.
+- Generación de **PDF en cola** (hoy es síncrona: botón "Generar PDF").
 - **Exportar el informe a Excel** (descargar la plantilla llena).
 - Reordenar ítems y fotos con **arrastrar y soltar** (hoy con botones subir/bajar).
 - Crear, **duplicar** y eliminar informes desde el listado.

@@ -291,8 +291,11 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 - [ ] Tests con el archivo `ejemplo_guadalupe_PS-762026.xlsx`: primera carga, recarga sin cambios (sin duplicados), recarga con cambios y con conflictos
 
 ### Fase 4: Generación del PDF
-- [ ] Plantilla Blade/CSS del informe: encabezado y pie de marca, portada, ficha, tabla de 4 columnas y páginas de fotos
-- [ ] Job en cola, estado de generación y descarga
+- [x] Plantilla Blade/CSS del informe: encabezado y pie de marca, portada, ficha, tabla de 4 columnas y páginas de fotos
+- [x] Respetar `distribucion_fotos` (1 / 2 / collage), paginar todas las fotos, leyendas y textos estándar (coordinación/hospitalidad)
+- [x] Empresa real (logo, firma, representante) y numeración de páginas
+- [x] Generar y descargar PDF con Chrome headless (`spatie/laravel-pdf` + Browsershot); hoy es síncrono
+- [ ] Job en cola con notificación (fase 2)
 - [ ] Comparar lado a lado contra el PDF real del cliente y ajustar hasta que coincidan
 - [ ] Meta: un informe de ~150 fotos en menos de 20 MB y en menos de 2 minutos
 
