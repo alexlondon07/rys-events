@@ -18,6 +18,7 @@ class ReportImportPreviewer
         'nombre_evento' => ['event_name', 'Nombre del evento'],
         'fecha_inicio_evento' => ['event_start', 'Fecha inicial del evento'],
         'fecha_fin_evento' => ['event_end', 'Fecha final del evento'],
+        'imagen_portada' => ['cover_url', 'Imagen de portada'],
         'introduccion' => ['introduction', 'Introducción'],
         'descripcion_evento' => ['event_description', 'Descripción del evento'],
         'conclusion' => ['conclusion', 'Conclusión'],

@@ -22,7 +22,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'user_id', 'municipality_id', 'contract_number', 'report_date', 'period_start',
     'period_end', 'subject', 'contract_object', 'event_name', 'event_start',
-    'event_end', 'introduction', 'event_description', 'conclusion', 'signer_name',
+    'event_end', 'cover_url', 'cover_path', 'cover_template',
+    'introduction', 'event_description', 'conclusion', 'signer_name',
     'status', 'current_step', 'pdf_path', 'pdf_generated_at', 'updated_in_app_at',
     'imported_at',
 ])]
@@ -72,6 +73,31 @@ class Report extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ReportActivityLog::class)->latest('id');
+    }
+
+    /**
+     * URL de la foto de portada del informe.
+     *
+     * Si la imagen se subió en la aplicación se sirve desde el storage propio;
+     * si viene como enlace de Google Drive se usa su miniatura pública.
+     */
+    public function coverImageUrl(): ?string
+    {
+        if ($this->cover_path) {
+            return asset('storage/'.$this->cover_path);
+        }
+
+        if (! $this->cover_url) {
+            return null;
+        }
+
+        foreach (['~drive\.google\.com/file/d/([A-Za-z0-9_-]+)~i', '~[?&]id=([A-Za-z0-9_-]+)~i'] as $pattern) {
+            if (preg_match($pattern, $this->cover_url, $matches)) {
+                return 'https://drive.google.com/thumbnail?id='.$matches[1].'&sz=w1600';
+            }
+        }
+
+        return $this->cover_url;
     }
 
     public function inferredCurrentStep(): int

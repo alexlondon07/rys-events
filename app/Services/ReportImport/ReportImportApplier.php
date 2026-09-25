@@ -142,9 +142,15 @@ class ReportImportApplier
             $photosCreated += $record->wasRecentlyCreated ? 1 : 0;
         }
 
+        $version = (int) ReportImport::query()
+            ->where('report_id', $report->id)
+            ->where('status', 'applied')
+            ->max('version') + 1;
+
         $result = [
             'report_id' => $report->id,
             'contract_number' => $report->contract_number,
+            'version' => $version,
             'created' => $created,
             'updated' => $updated,
             'unchanged' => $unchanged,
@@ -155,6 +161,8 @@ class ReportImportApplier
         $lockedImport->update([
             'report_id' => $report->id,
             'status' => 'applied',
+            'version' => $version,
+            'photos_added' => $photosCreated,
             'summary' => array_merge($lockedImport->summary ?? [], ['result' => $result]),
             'applied_at' => now(),
         ]);
