@@ -45,7 +45,7 @@ MVP en desarrollo activo. Lo construido está probado (`pint`, `phpstan`, `php a
 | Evidencia fotográfica: subida local (optimizada) y enlaces de Google Drive | ✅ |
 | Trazabilidad (bitácora de cambios por campo) | ✅ |
 | Generación de PDF con la plantilla oficial (Chrome headless) | ✅ |
-| Exportar el informe a Excel | ⏳ |
+| Exportar el informe a Excel (misma plantilla, para completar fuera) | ✅ |
 
 ---
 
@@ -173,6 +173,8 @@ composer test                  # lint:check + types:check + tests
 - **Generar / Descargar PDF**: renderiza la plantilla con Chrome headless
   (`spatie/laravel-pdf` + `spatie/browsershot`) y guarda el archivo en el informe.
   Requiere Chrome/Chromium instalado (ver [Requisitos](#requisitos)).
+- **Descargar Excel**: exporta el informe a la misma plantilla oficial para
+  completarlo fuera y volver a subirlo (la carga es idempotente).
 
 ### Biblioteca
 - **Plantillas de texto** con variables (`{municipio}`, `{departamento}`, `{evento}`,
@@ -349,8 +351,6 @@ php artisan test       # PHPUnit (Feature + Unit)
 ## Pendientes
 
 - Generación de **PDF en cola** (hoy es síncrona: botón "Generar PDF").
-- **Exportar el informe a Excel** (descargar la plantilla llena).
 - Reordenar ítems y fotos con **arrastrar y soltar** (hoy con botones subir/bajar).
-- Crear, **duplicar** y eliminar informes desde el listado.
 - Límites de fotos (tamaño/cantidad) y armado de **collage**.
 - Sincronización automática de Google Drive con cuenta de servicio (opcional).

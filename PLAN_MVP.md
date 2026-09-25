@@ -282,7 +282,7 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 - [ ] Pantalla de vista previa (crear / actualizar / conflictos / errores por fila) y confirmación
 - [ ] Integración con Drive: extraer el ID del enlace, listar carpetas, descargar y optimizar fotos, reportar las que no tienen permiso
 - [ ] Botón "Sincronizar fotos de Drive" por ítem y por informe (solo trae las nuevas)
-- [ ] Exportar el informe actual a la plantilla ("Descargar Excel")
+- [x] Exportar el informe actual a la plantilla ("Descargar Excel") con OpenSpout (misma estructura, reimportable)
 - [x] Historial de cargas del informe **versionado** (v1, v2…): archivo descargable, resumen y detalle de qué cambió en cada carga; aviso si se sube un archivo idéntico
 - [x] Foto de portada por informe (enlace de Drive en el Excel o subida en la app) con miniatura
 - [x] Bitácora de cambios por campo (`report_activity_logs`): registrar origen (`app`/`excel`), usuario, valor anterior y nuevo
