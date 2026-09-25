@@ -66,6 +66,9 @@
                         {{ $report->pdf_path ? 'Regenerar PDF' : 'Generar PDF' }}
                     </flux:button>
                 </form>
+                <flux:button :href="route('reports.excel', $report)" variant="outline" icon="table-cells">
+                    Descargar Excel
+                </flux:button>
             </div>
         </header>
 

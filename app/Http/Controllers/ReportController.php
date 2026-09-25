@@ -6,6 +6,7 @@ use App\Models\CompanySetting;
 use App\Models\Report;
 use App\Models\ReportImport;
 use App\Models\ReportItem;
+use App\Services\Reports\ReportExcelExporter;
 use App\Services\Reports\ReportPdfGenerator;
 use App\Services\Text\TextTemplateRenderer;
 use Illuminate\Contracts\View\View;
@@ -68,6 +69,16 @@ class ReportController extends Controller
         abort_unless($report->pdf_path && Storage::disk('local')->exists($report->pdf_path), 404);
 
         return Storage::disk('local')->download($report->pdf_path, "informe-{$report->contract_number}.pdf");
+    }
+
+    /**
+     * Exporta el informe a la plantilla de Excel para completarlo fuera.
+     */
+    public function downloadExcel(Report $report, ReportExcelExporter $exporter): StreamedResponse
+    {
+        $path = $exporter->export($report);
+
+        return Storage::disk('local')->download($path, "informe-{$report->contract_number}.xlsx");
     }
 
     /**

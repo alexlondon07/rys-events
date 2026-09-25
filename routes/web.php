@@ -46,6 +46,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('informes/{report}/pdf', [ReportController::class, 'downloadPdf'])
         ->name('reports.pdf.download');
 
+    Route::get('informes/{report}/excel', [ReportController::class, 'downloadExcel'])
+        ->name('reports.excel');
+
     Route::middleware('admin')->group(function () {
         Route::livewire('empresa', 'pages::company.edit')->name('company.edit');
         Route::livewire('usuarios', 'pages::users.index')->name('users.index');
