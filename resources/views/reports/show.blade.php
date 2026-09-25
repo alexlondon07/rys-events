@@ -17,6 +17,17 @@
 
 <x-layouts::app :title="'Informe '.$report->contract_number">
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 py-4">
+        @if (session('status'))
+            <div class="flex items-center gap-3 rounded-lg border border-[#BBD8C5] bg-[#F1F8F3] px-4 py-3 text-sm font-semibold text-[#2C7549]">
+                <flux:icon.check-circle class="size-5 shrink-0" /> {{ session('status') }}
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="flex items-center gap-3 rounded-lg border border-[#F1C4BE] bg-[#F9E3E0] px-4 py-3 text-sm font-semibold text-[#A8261D]">
+                <flux:icon.exclamation-triangle class="size-5 shrink-0" /> {{ session('error') }}
+            </div>
+        @endif
+
         <header class="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div>
                 <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#7F5C12] hover:text-[#17150F]" wire:navigate>
@@ -44,6 +55,17 @@
                 <flux:button :href="route('reports.preview', $report)" variant="ghost" icon="document-magnifying-glass">
                     Vista previa
                 </flux:button>
+                @if ($report->pdf_path)
+                    <flux:button :href="route('reports.pdf.download', $report)" variant="primary" icon="arrow-down-tray">
+                        Descargar PDF
+                    </flux:button>
+                @endif
+                <form method="POST" action="{{ route('reports.pdf.generate', $report) }}">
+                    @csrf
+                    <flux:button type="submit" variant="outline" icon="document-arrow-down">
+                        {{ $report->pdf_path ? 'Regenerar PDF' : 'Generar PDF' }}
+                    </flux:button>
+                </form>
             </div>
         </header>
 

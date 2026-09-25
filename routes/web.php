@@ -40,11 +40,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('informes/{report}/cargas/{import}/descargar', [ReportController::class, 'downloadImport'])
         ->name('reports.imports.download');
 
+    Route::post('informes/{report}/pdf', [ReportController::class, 'generatePdf'])
+        ->name('reports.pdf.generate');
+
+    Route::get('informes/{report}/pdf', [ReportController::class, 'downloadPdf'])
+        ->name('reports.pdf.download');
+
     Route::middleware('admin')->group(function () {
         Route::livewire('empresa', 'pages::company.edit')->name('company.edit');
         Route::livewire('usuarios', 'pages::users.index')->name('users.index');
     });
 
 });
+
+// Render para el PDF: URL firmada (Chrome no tiene sesión).
+Route::get('informes/{report}/pdf-render', [ReportController::class, 'pdfRender'])
+    ->middleware('signed')
+    ->name('reports.pdf.render');
 
 require __DIR__.'/settings.php';
