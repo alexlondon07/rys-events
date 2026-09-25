@@ -60,10 +60,11 @@
                         Descargar PDF
                     </flux:button>
                 @endif
-                <form method="POST" action="{{ route('reports.pdf.generate', $report) }}">
+                <form method="POST" action="{{ route('reports.pdf.generate', $report) }}" x-data="{ busy: false }" @submit="busy = true">
                     @csrf
-                    <flux:button type="submit" variant="outline" icon="document-arrow-down">
-                        {{ $report->pdf_path ? 'Regenerar PDF' : 'Generar PDF' }}
+                    <flux:button type="submit" variant="outline" icon="document-arrow-down" x-bind:disabled="busy">
+                        <span x-show="!busy">{{ $report->pdf_path ? 'Regenerar PDF' : 'Generar PDF' }}</span>
+                        <span x-show="busy" x-cloak>Generando…</span>
                     </flux:button>
                 </form>
                 <flux:button :href="route('reports.excel', $report)" variant="outline" icon="table-cells">
@@ -261,11 +262,11 @@
                 <section class="rounded-xl border border-[#E3DED3] bg-white p-5 shadow-sm">
                     <div class="flex items-center justify-between">
                         <h2 class="font-display font-bold">Historial de cambios</h2>
-                        <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $report->activityLogs->count() }}</span>
+                        <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $activityCount }}</span>
                     </div>
 
                     <ol class="mt-4 space-y-4">
-                        @forelse ($report->activityLogs->take(8) as $log)
+                        @forelse ($recentActivity as $log)
                             <li class="border-s-2 border-[#E3DED3] ps-3">
                                 <p class="text-xs text-[#5F584A]">
                                     {{ $log->created_at?->format('d/m/Y H:i') }} · {{ $log->user?->name ?? 'Sistema' }} ·

@@ -321,6 +321,22 @@ bloquean).
 
 ---
 
+## Seguridad
+
+- **Autenticación** con Fortify: 2FA (TOTP), códigos de recuperación y passkeys; login con
+  *rate limiting*.
+- **Autorización**: rutas de administración protegidas por el middleware `admin`; usuarios
+  deshabilitados son expulsados por `EnsureUserIsActive`.
+- **Cabeceras de seguridad** (`SecurityHeaders`): `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Permissions-Policy`.
+- **Subidas validadas**: fotos (JPG/PNG/WEBP/HEIC, ≤ 10 MB), portada (≤ 5 MB) y Excel (≤ 10 MB).
+  Los archivos privados viven en el disco `local`; solo logo, firma y fotos son públicos.
+- **PDF**: la vista de impresión se sirve por **URL firmada** (caduca en 15 min) y la generación
+  está limitada por *throttle*.
+- **Sin `{!! !!}`** salvo el QR de 2FA generado por el servidor.
+
+---
+
 ## Calidad y pruebas
 
 ```bash

@@ -18,8 +18,12 @@ class ReportController extends Controller
 {
     public function show(Report $report): View
     {
+        $report = $this->loadReport($report);
+
         return view('reports.show', [
-            'report' => $this->loadReport($report),
+            'report' => $report,
+            'recentActivity' => $report->activityLogs()->with('user')->latest('id')->limit(8)->get(),
+            'activityCount' => $report->activityLogs()->count(),
         ]);
     }
 
@@ -99,8 +103,6 @@ class ReportController extends Controller
             'items.photos',
             'imports.user',
             'imports.activityLogs',
-            'activityLogs.user',
-            'activityLogs.import',
         ]);
     }
 }
