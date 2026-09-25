@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Services\Text;
+
+use App\Models\Report;
+use App\Models\ReportItem;
+
+class TextTemplateRenderer
+{
+    public const VARIABLES = [
+        'municipio', 'departamento', 'evento', 'fecha_inicio',
+        'fecha_fin', 'dias', 'artista', 'contrato',
+    ];
+
+    /**
+     * @param  array<string, string|int|null>  $values
+     */
+    public function render(string $body, array $values): string
+    {
+        $replacements = [];
+
+        foreach (self::VARIABLES as $variable) {
+            $replacements['{'.$variable.'}'] = (string) ($values[$variable] ?? '');
+        }
+
+        return strtr($body, $replacements);
+    }
+
+    /** @return array<string, string> */
+    public function variablesFor(Report $report, ?ReportItem $item = null): array
+    {
+        $days = null;
+
+        if ($report->event_start && $report->event_end) {
+            $days = (string) ($report->event_start->diffInDays($report->event_end) + 1);
+        }
+
+        return [
+            'municipio' => (string) optional($report->municipality)->name,
+            'departamento' => (string) optional(optional($report->municipality)->department)->name,
+            'evento' => (string) ($report->event_name ?? ''),
+            'fecha_inicio' => $report->event_start?->format('d/m/Y') ?? '',
+            'fecha_fin' => $report->event_end?->format('d/m/Y') ?? '',
+            'dias' => $days ?? '',
+            'artista' => (string) (optional($item)->artist_name ?? optional($item)->category_label ?? ''),
+            'contrato' => (string) ($report->contract_number ?? ''),
+        ];
+    }
+}
