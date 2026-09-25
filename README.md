@@ -134,6 +134,7 @@ Notas:
 ```bash
 php artisan migrate --seed     # migrar y sembrar (admin, DIVIPOLA, biblioteca)
 php artisan db:seed --force    # volver a sembrar
+php artisan db:seed --class=DemoSeeder   # datos de demostración (empresa, informe y portada)
 php artisan storage:link       # enlace de storage (una vez)
 npm run build                  # compilar assets (tras cambios en vistas)
 npm run dev                    # Vite en modo desarrollo
