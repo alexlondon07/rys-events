@@ -261,7 +261,7 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 - [x] Configuración de la empresa (logo, firma, representante legal) — `/empresa`, solo admin, con vista previa y borrado de imágenes
 
 ### Fase 2: Gestión de informes y asistente
-- [x] Listado de informes con paginación, búsqueda, filtros (estado/departamento), orden, tamaño de página y estadísticas (falta crear, duplicar y eliminar desde el listado)
+- [x] Listado de informes con paginación, búsqueda, filtros (estado/departamento), orden, tamaño de página, estadísticas y **crear, duplicar y eliminar**
 - [x] Asistente de 6 pasos (`/informes/{id}/editar`) con navegación libre, autoguardado e indicador de avance
 - [x] Motor de plantillas de texto (reemplazo de variables) y botón "Usar plantilla" en Evento y Cierre
 - [x] Catálogo de ítems e importación desde el catálogo en los pasos 3 y 4 (Biblioteca › Catálogo de ítems)

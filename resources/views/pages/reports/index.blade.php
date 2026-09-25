@@ -1,8 +1,12 @@
 <?php
 
 use App\Models\Department;
+use App\Models\Municipality;
 use App\Models\Report;
 use App\Models\ReportItem;
+use Flux\Flux;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -26,6 +30,17 @@ new #[Title('Informes')] class extends Component {
 
     #[Url(as: 'por', except: 10)]
     public int $perPage = 10;
+
+    public bool $showCreate = false;
+
+    public string $newContract = '';
+
+    public int|string|null $newDepartment = null;
+
+    public int|string|null $newMunicipality = null;
+
+    /** @var list<array{id:int, name:string}> */
+    public array $newMunicipalities = [];
 
     public function updated(string $name): void
     {
@@ -89,12 +104,121 @@ new #[Title('Informes')] class extends Component {
             ->get(['id', 'name']);
     }
 
+    /** @return \Illuminate\Support\Collection<int, array{id:int, name:string}> */
+    #[Computed]
+    public function allDepartments()
+    {
+        return Department::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Department $department): array => ['id' => $department->id, 'name' => $department->name]);
+    }
+
     public function hasFilters(): bool
     {
         return trim($this->search) !== ''
             || $this->status !== 'all'
             || $this->department !== ''
             || $this->sort !== 'recent';
+    }
+
+    public function openCreate(): void
+    {
+        $this->reset('newContract', 'newDepartment', 'newMunicipality', 'newMunicipalities');
+        $this->showCreate = true;
+        $this->resetValidation();
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->showCreate = false;
+        $this->resetValidation();
+    }
+
+    public function updatedNewDepartment(): void
+    {
+        $this->newMunicipality = null;
+        $departmentId = $this->newDepartment ? (int) $this->newDepartment : null;
+
+        $this->newMunicipalities = $departmentId
+            ? Municipality::query()
+                ->where('department_id', $departmentId)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (Municipality $municipality): array => ['id' => $municipality->id, 'name' => $municipality->name])
+                ->all()
+            : [];
+    }
+
+    public function createReport(): void
+    {
+        $validated = $this->validate([
+            'newContract' => ['required', 'string', 'max:100', Rule::unique(Report::class, 'contract_number')],
+            'newMunicipality' => ['required', 'integer', 'exists:municipalities,id'],
+        ], [
+            'newContract.required' => 'El número de contrato es obligatorio.',
+            'newContract.unique' => 'Ya existe un informe con ese contrato.',
+            'newMunicipality.required' => 'Seleccione el municipio.',
+        ]);
+
+        $report = Report::query()->create([
+            'user_id' => Auth::id(),
+            'contract_number' => $validated['newContract'],
+            'municipality_id' => (int) $validated['newMunicipality'],
+            'subject' => 'Informe de actividades No '.$validated['newContract'],
+            'status' => 'draft',
+            'current_step' => 1,
+        ]);
+
+        Flux::toast(variant: 'success', text: 'Informe creado.');
+        $this->redirect(route('reports.edit', $report), navigate: true);
+    }
+
+    public function duplicateReport(int $id): void
+    {
+        $report = Report::query()->with('items')->findOrFail($id);
+
+        $copy = $report->replicate([
+            'pdf_path', 'pdf_generated_at', 'status', 'current_step',
+            'updated_in_app_at', 'imported_at', 'cover_path',
+        ]);
+        $copy->contract_number = $this->uniqueContract($report->contract_number.' (copia)');
+        $copy->status = 'draft';
+        $copy->current_step = 1;
+        $copy->pdf_path = null;
+        $copy->pdf_generated_at = null;
+        $copy->user_id = Auth::id();
+        $copy->save();
+
+        foreach ($report->items as $item) {
+            $newItem = $item->replicate(['updated_in_app_at', 'imported_at', 'drive_synced_at']);
+            $newItem->report_id = $copy->id;
+            $newItem->save();
+        }
+
+        unset($this->reports, $this->stats);
+        Flux::toast(variant: 'success', text: 'Informe duplicado.');
+        $this->redirect(route('reports.edit', $copy), navigate: true);
+    }
+
+    public function deleteReport(int $id): void
+    {
+        Report::query()->findOrFail($id)->delete();
+        unset($this->reports, $this->stats);
+        Flux::toast(variant: 'success', text: 'Informe eliminado.');
+    }
+
+    private function uniqueContract(string $base): string
+    {
+        $contract = $base;
+        $suffix = 2;
+
+        while (Report::query()->where('contract_number', $contract)->exists()) {
+            $contract = $base.' '.$suffix;
+            $suffix++;
+        }
+
+        return $contract;
     }
 }; ?>
 
@@ -105,10 +229,41 @@ new #[Title('Informes')] class extends Component {
             <h1 class="font-display mt-1 text-3xl font-semibold text-[#17150F]">Informes</h1>
             <p class="mt-2 text-[#5F584A]">Cree un informe nuevo o complételo desde la plantilla oficial.</p>
         </div>
-        <flux:button :href="route('reports.import')" icon="arrow-up-tray" variant="primary" wire:navigate>
-            Importar desde Excel
-        </flux:button>
+        <div class="flex flex-wrap gap-3">
+            <flux:button wire:click="openCreate" icon="plus" variant="primary">Nuevo informe</flux:button>
+            <flux:button :href="route('reports.import')" icon="arrow-up-tray" variant="outline" wire:navigate>
+                Importar desde Excel
+            </flux:button>
+        </div>
     </header>
+
+    @if ($showCreate)
+        <form wire:submit="createReport" class="rounded-xl border border-[#D3CBBB] bg-white p-6 shadow-sm">
+            <h2 class="font-display text-lg font-bold text-[#17150F]">Nuevo informe</h2>
+            <p class="mt-1 text-sm text-[#5F584A]">Cree un borrador y complételo en el asistente o desde el Excel.</p>
+
+            <div class="mt-5 grid gap-5 sm:grid-cols-3">
+                <flux:input wire:model="newContract" label="No. de contrato" type="text" required />
+                <flux:select wire:model.live="newDepartment" label="Departamento">
+                    <flux:select.option value="">Seleccione…</flux:select.option>
+                    @foreach ($this->allDepartments as $department)
+                        <flux:select.option value="{{ $department['id'] }}">{{ $department['name'] }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+                <flux:select wire:model="newMunicipality" label="Municipio">
+                    <flux:select.option value="">Seleccione…</flux:select.option>
+                    @foreach ($newMunicipalities as $municipality)
+                        <flux:select.option value="{{ $municipality['id'] }}">{{ $municipality['name'] }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3 border-t border-[#E3DED3] pt-5">
+                <flux:button type="button" wire:click="cancelCreate" variant="ghost">Cancelar</flux:button>
+                <flux:button type="submit" variant="primary" icon="check">Crear y editar</flux:button>
+            </div>
+        </form>
+    @endif
 
     <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
         @foreach ([
@@ -251,13 +406,23 @@ new #[Title('Informes')] class extends Component {
                                     ])>{{ $report->status === 'draft' ? 'Borrador' : 'Finalizado' }}</span>
                                 </td>
                                 <td class="px-5 py-4 text-right">
-                                    <div class="flex justify-end gap-2">
+                                    <div class="flex justify-end gap-1">
                                         <flux:button :href="route('reports.show', $report)" size="sm" variant="primary" icon="eye" wire:navigate>
                                             Revisar
                                         </flux:button>
-                                        <flux:button :href="route('reports.preview', $report)" size="sm" variant="ghost" icon="document-magnifying-glass">
-                                            Vista previa
+                                        <flux:button size="sm" variant="ghost" icon="pencil-square" :href="route('reports.edit', $report)" wire:navigate>
+                                            Editar
                                         </flux:button>
+                                        <flux:button size="sm" variant="ghost" icon="document-duplicate" wire:click="duplicateReport({{ $report->id }})" title="Duplicar" aria-label="Duplicar" />
+                                        <flux:button
+                                            size="sm"
+                                            variant="ghost"
+                                            icon="trash"
+                                            wire:click="deleteReport({{ $report->id }})"
+                                            wire:confirm="¿Eliminar el informe {{ $report->contract_number }}? Se puede restaurar desde la base de datos."
+                                            title="Eliminar"
+                                            aria-label="Eliminar"
+                                        />
                                     </div>
                                 </td>
                             </tr>
