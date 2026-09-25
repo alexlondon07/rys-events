@@ -23,6 +23,9 @@
                     <flux:sidebar.item icon="arrow-up-tray" :href="route('reports.import')" :current="request()->routeIs('reports.import')" wire:navigate>
                         Importar desde Excel
                     </flux:sidebar.item>
+                    <flux:sidebar.item icon="table-cells" :href="route('reports.excel.viewer')" :current="request()->routeIs('reports.excel.viewer')" wire:navigate>
+                        Visor del Excel
+                    </flux:sidebar.item>
                     <flux:sidebar.item icon="cog-6-tooth" :href="route('profile.edit')" :current="request()->routeIs('profile.edit', 'security.edit', 'appearance.edit')" wire:navigate>
                         Configuración
                     </flux:sidebar.item>

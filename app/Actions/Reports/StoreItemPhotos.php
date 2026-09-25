@@ -26,15 +26,18 @@ class StoreItemPhotos
     {
         $order = (int) $item->photos()->max('sort_order');
         $stored = 0;
+        $limit = max(1, (int) config('reports.photos.max_per_item', 60));
+        $remaining = max(0, $limit - $item->photos()->count());
 
         foreach ($files as $file) {
-            if (! $file) {
-                continue;
+            if (! $file || $remaining <= 0) {
+                break;
             }
 
             try {
                 $this->store($item, $file, ++$order);
                 $stored++;
+                $remaining--;
             } catch (\Throwable $exception) {
                 report($exception);
             }

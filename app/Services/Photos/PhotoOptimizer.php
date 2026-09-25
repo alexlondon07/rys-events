@@ -42,7 +42,7 @@ class PhotoOptimizer
         ];
     }
 
-    private function load(string $path): GdImage
+    public function load(string $path): GdImage
     {
         $info = @getimagesize($path);
 

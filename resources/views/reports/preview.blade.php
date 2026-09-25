@@ -7,7 +7,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .report-page { width: 210mm; min-height: 296mm; margin: 0 auto 24px; background: white; box-shadow: 0 8px 30px rgba(23, 21, 15, .12); position: relative; overflow: hidden; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-        .report-watermark { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font: 800 64px Archivo, sans-serif; letter-spacing: .16em; color: rgba(143, 82, 10, .065); transform: rotate(-28deg); }
+        .report-watermark { position: absolute; inset: 0; display: none; place-items: center; pointer-events: none; font: 800 64px Archivo, sans-serif; letter-spacing: .16em; color: rgba(143, 82, 10, .065); transform: rotate(-28deg); }
+        .report-is-draft .report-watermark { display: grid; }
         .report-header { height: 20mm; background: #0F0E0B; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 18mm; border-bottom: 2px solid #C9A043; }
         .report-footer { position: absolute; bottom: 0; left: 0; right: 0; height: 13mm; background: #0F0E0B; border-top: 2px solid #C9A043; color: #CFC8B8; display: flex; align-items: center; justify-content: space-between; padding: 0 18mm; font-size: 10px; }
         .report-content { padding: 18mm 18mm 27mm; }
@@ -28,12 +29,12 @@
         }
     </style>
 </head>
-<body class="bg-[#E9E5DC] text-[#17150F]">
+<body class="bg-[#E9E5DC] text-[#17150F] {{ $report->status === 'draft' ? 'report-is-draft' : '' }}">
     <div class="preview-toolbar sticky top-0 z-50 border-b border-[#D3CBBB] bg-[#F3F1EC]/95 px-5 py-3 backdrop-blur">
         <div class="mx-auto flex max-w-6xl flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
                 <a href="{{ route('reports.show', $report) }}" class="text-sm font-semibold text-[#7F5C12]">← Volver a revisión</a>
-                <p class="mt-0.5 text-sm text-[#5F584A]">Vista previa del borrador · {{ $report->contract_number }}</p>
+                <p class="mt-0.5 text-sm text-[#5F584A]">Vista previa {{ $report->status === 'draft' ? 'del borrador' : 'del informe final' }} · {{ $report->contract_number }}</p>
             </div>
             <button onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-lg bg-[#17150F] px-5 text-sm font-semibold text-white hover:bg-[#2A2720]">
                 Imprimir o guardar como PDF
@@ -110,6 +111,7 @@
             @php($layout = $item->photo_layout ?: 'pair')
             @php($gridClass = $layout === 'single' ? 'grid-cols-1' : 'grid-cols-2')
             @php($imageClass = $layout === 'single' ? 'h-[140mm]' : 'h-64')
+            @php($evidence = $item->evidenceLink())
 
             <section class="report-page">
                 <div class="report-watermark">BORRADOR</div>
@@ -139,7 +141,7 @@
                         </div>
                     </div>
 
-                    @if ($item->photos->isEmpty() && ! $item->drive_folder_id)
+                    @if ($item->photos->isEmpty() && ! $evidence)
                         <div class="mt-6 flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#D3CBBB] bg-[#FBFAF6] text-center">
                             <p class="font-semibold text-[#5F584A]">Sin evidencia fotográfica</p>
                             <p class="mt-1 text-xs text-[#8A8274]">Agregue las fotos en el asistente de edición.</p>
@@ -150,41 +152,56 @@
             </section>
 
             @if ($item->photos->isNotEmpty())
-                @foreach ($item->photos->chunk($item->photosPerPage()) as $photoChunk)
+                @foreach ($item->photos->chunk($item->photosPerPage()) as $chunkIndex => $photoChunk)
+                    @php($collage = ($collages ?? [])[$item->id][$chunkIndex] ?? null)
                     <section class="report-page">
                         <div class="report-watermark">BORRADOR</div>
                         @include('reports.partials.preview-header')
                         <div class="report-content">
                             <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7F5C12]">{{ $item->ref }} · Evidencia fotográfica</p>
                             <h2 class="font-display mt-2 text-xl font-bold">{{ $item->artist_name ?: $item->category_label ?: 'Ítem' }}</h2>
-                            <div class="mt-5 grid {{ $gridClass }} gap-4">
-                                @foreach ($photoChunk as $photo)
-                                    <figure class="overflow-hidden rounded-lg border border-[#E3DED3]">
-                                        @if ($photo->fullUrl())
-                                            <img src="{{ $photo->fullUrl() }}" alt="{{ $photo->caption }}" class="{{ $imageClass }} w-full object-cover" referrerpolicy="no-referrer">
-                                        @endif
-                                        <figcaption class="p-3 text-xs text-[#5F584A]">{{ $photo->caption ?: 'Sin título' }}</figcaption>
-                                    </figure>
-                                @endforeach
-                            </div>
+                            @if ($layout === 'collage' && $collage)
+                                @php($legend = $photoChunk->pluck('caption')->filter()->implode(' · '))
+                                <figure class="mt-5 overflow-hidden rounded-lg border border-[#E3DED3]">
+                                    <img src="{{ $collage }}" alt="Collage de evidencia" class="w-full object-contain" referrerpolicy="no-referrer">
+                                    <figcaption class="p-3 text-xs text-[#5F584A]">{{ $legend ?: 'Sin título' }}</figcaption>
+                                </figure>
+                            @else
+                                <div class="mt-5 grid {{ $gridClass }} gap-4">
+                                    @foreach ($photoChunk as $photo)
+                                        <figure class="overflow-hidden rounded-lg border border-[#E3DED3]">
+                                            @if ($photo->fullUrl())
+                                                <img src="{{ $photo->fullUrl() }}" alt="{{ $photo->caption }}" class="{{ $imageClass }} w-full object-cover" referrerpolicy="no-referrer">
+                                            @endif
+                                            <figcaption class="p-3 text-xs text-[#5F584A]">{{ $photo->caption ?: 'Sin título' }}</figcaption>
+                                        </figure>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                         @include('reports.partials.preview-footer', ['pageLabel' => $item->ref.' · fotos'])
                     </section>
                 @endforeach
             @endif
 
-            @if ($item->drive_folder_id)
+            @if ($evidence)
                 <section class="report-page">
                     <div class="report-watermark">BORRADOR</div>
                     @include('reports.partials.preview-header')
                     <div class="report-content">
-                        <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7F5C12]">{{ $item->ref }} · Evidencia fotográfica (carpeta de Drive)</p>
+                        <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7F5C12]">{{ $item->ref }} · Evidencia ({{ $evidence->label() }})</p>
                         <h2 class="font-display mt-2 text-xl font-bold">{{ $item->artist_name ?: $item->category_label ?: 'Ítem' }}</h2>
-                        <div class="mt-5 overflow-hidden rounded-lg border border-[#D3CBBB]">
-                            <iframe src="https://drive.google.com/embeddedfolderview?id={{ $item->drive_folder_id }}#grid" class="h-[210mm] w-full" loading="lazy"></iframe>
-                        </div>
+                        @if ($evidence->imageUrl())
+                            <figure class="mt-5 overflow-hidden rounded-lg border border-[#D3CBBB]">
+                                <img src="{{ $evidence->imageUrl() }}" alt="Evidencia de {{ $item->ref }}" class="h-[210mm] w-full object-contain" referrerpolicy="no-referrer">
+                            </figure>
+                        @else
+                            <div class="mt-5 overflow-hidden rounded-lg border border-[#D3CBBB]">
+                                <iframe src="{{ $evidence->embedUrl() }}" class="h-[210mm] w-full" loading="lazy"></iframe>
+                            </div>
+                        @endif
                     </div>
-                    @include('reports.partials.preview-footer', ['pageLabel' => $item->ref.' · fotos'])
+                    @include('reports.partials.preview-footer', ['pageLabel' => $item->ref.' · evidencia'])
                 </section>
             @endif
         @endforeach

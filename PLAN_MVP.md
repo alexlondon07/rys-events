@@ -270,10 +270,11 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 
 ### Fase 3: Evidencia fotográfica
 - [x] Subida múltiple con optimización (redimensionar y comprimir con GD) y miniatura
-- [x] Evidencia por enlace de Google Drive: pegar enlaces de archivo (miniatura) o de carpeta (vista incrustada)
+- [x] Evidencia por enlace: archivos de Drive (miniatura), carpeta de Drive (vista incrustada), imagen directa u otro proveedor, con aviso para compartir la carpeta como “cualquiera con el enlace”
 - [x] Cuadrícula de fotos con reordenamiento, leyenda editable y eliminación por ítem
 - [x] Reordenar ítems (subir/bajar) dentro de cada sección
-- [ ] Límites: tamaño máximo, formatos JPG/PNG/HEIC→JPG y fotos máximas por ítem
+- [x] Límites: tamaño máximo, formatos JPG/PNG/WEBP (HEIC se rechaza con aviso) y fotos máximas por ítem
+- [x] Collage 2x2 real: composición de la página con GD, recorte al centro y caché en disco
 
 ### Fase 3.5: Carga desde Excel y Google Drive
 - [ ] Validar la plantilla v1 con el cliente, contra el Excel que usan hoy
@@ -286,6 +287,7 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 - [x] Historial de cargas del informe **versionado** (v1, v2…): archivo descargable, resumen y detalle de qué cambió en cada carga; aviso si se sube un archivo idéntico
 - [x] Foto de portada por informe (enlace de Drive en el Excel o subida en la app) con miniatura
 - [x] Bitácora de cambios por campo (`report_activity_logs`): registrar origen (`app`/`excel`), usuario, valor anterior y nuevo
+- [x] Visor del Excel por informe (`/informes/visor-excel`): rejilla real por hoja, color de cada fila según lo que hará el sistema y guía de columnas/campos
 - [ ] Línea de tiempo de cambios en la vista del informe (y por ítem)
 - [ ] Hoja `Historial`/`_meta` al exportar el Excel con versión de plantilla y resumen de últimas cargas
 - [ ] Tests con el archivo `ejemplo_guadalupe_PS-762026.xlsx`: primera carga, recarga sin cambios (sin duplicados), recarga con cambios y con conflictos

@@ -15,6 +15,9 @@ Route::middleware(['auth'])->group(function () {
     Route::livewire('informes/importar', 'pages::reports.import')
         ->name('reports.import');
 
+    Route::livewire('informes/visor-excel', 'pages::reports.excel-viewer')
+        ->name('reports.excel.viewer');
+
     Route::get('informes/plantilla', function () {
         return response()->download(
             base_path('plantillas/plantilla_informe_rys.xlsx'),

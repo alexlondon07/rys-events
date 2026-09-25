@@ -72,4 +72,19 @@ class ReportPdfTest extends TestCase
             ->get(route('reports.pdf.download', $this->report))
             ->assertOk();
     }
+
+    public function test_the_watermark_is_only_enabled_for_drafts(): void
+    {
+        $signed = URL::temporarySignedRoute('reports.pdf.render', now()->addMinutes(5), ['report' => $this->report->id]);
+
+        $this->get($signed)
+            ->assertOk()
+            ->assertSee('text-[#17150F] report-is-draft', false);
+
+        $this->report->update(['status' => 'final']);
+
+        $this->get($signed)
+            ->assertOk()
+            ->assertDontSee('text-[#17150F] report-is-draft', false);
+    }
 }

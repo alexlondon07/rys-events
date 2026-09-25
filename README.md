@@ -40,9 +40,10 @@ MVP en desarrollo activo. Lo construido está probado (`pint`, `phpstan`, `php a
 | Configuración de la empresa (logo, firma, representante) | ✅ |
 | Listado de informes (paginación, búsqueda, filtros, orden, estadísticas) | ✅ |
 | Importación desde Excel por partes con vista previa y conflictos | ✅ |
+| Visor del Excel por informe (rejilla real por hoja, estado por fila y guía de columnas) | ✅ |
 | Asistente de edición de 6 pasos con autoguardado y checklist | ✅ |
 | Biblioteca: plantillas de texto y catálogo de ítems | ✅ |
-| Evidencia fotográfica: subida local (optimizada) y enlaces de Google Drive | ✅ |
+| Evidencia fotográfica: subida local (optimizada), enlace de evidencia (Drive, imagen u otro), límites y collage | ✅ |
 | Trazabilidad (bitácora de cambios por campo) | ✅ |
 | Generación de PDF con la plantilla oficial (Chrome headless) | ✅ |
 | Exportar el informe a Excel (misma plantilla, para completar fuera) | ✅ |
@@ -126,6 +127,13 @@ Notas:
 - El **tema es claro fijo** (la identidad de marca no tiene modo oscuro).
 - Para el PDF, configure `LARAVEL_PDF_CHROME_PATH` con la ruta a Chrome/Chromium
   (en macOS: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`).
+- Los **límites de fotos** (máximo por ítem y tamaño) y el tamaño de las celdas del
+  **collage** se ajustan en `config/reports.php` o con las variables `REPORTS_PHOTOS_*`.
+  Los formatos aceptados son JPG, PNG y WEBP; los HEIC del iPhone se rechazan con un aviso.
+- **Evidencia por enlace**: el campo del ítem acepta una carpeta o archivo de Drive, una
+  imagen directa (JPG/PNG/WEBP) o cualquier otro enlace. Para incrustar una carpeta de Drive
+  debe estar compartida como “Cualquiera con el enlace”; si el proveedor bloquea el iframe,
+  siempre queda el botón para abrir el enlace.
 
 ---
 
@@ -369,5 +377,4 @@ php artisan test       # PHPUnit (Feature + Unit)
 
 - Generación de **PDF en cola** (hoy es síncrona: botón "Generar PDF").
 - Reordenar ítems y fotos con **arrastrar y soltar** (hoy con botones subir/bajar).
-- Límites de fotos (tamaño/cantidad) y armado de **collage**.
 - Sincronización automática de Google Drive con cuenta de servicio (opcional).

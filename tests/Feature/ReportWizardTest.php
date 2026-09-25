@@ -140,16 +140,6 @@ class ReportWizardTest extends TestCase
         $this->assertSame('ABC123', $photos->first()->drive_file_id);
     }
 
-    public function test_drive_folder_link_is_stored(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test('pages::reports.wizard', ['report' => $this->report])
-            ->set('items.0.drive_folder_id', 'https://drive.google.com/drive/folders/FOLDER123')
-            ->assertHasNoErrors();
-
-        $this->assertSame('FOLDER123', ReportItem::where('ref', 'ART-01')->firstOrFail()->drive_folder_id);
-    }
-
     public function test_items_can_be_reordered(): void
     {
         ReportItem::create([
@@ -269,5 +259,71 @@ class ReportWizardTest extends TestCase
             ->call('finalize');
 
         $this->assertSame('final', $this->report->fresh()->status);
+    }
+
+    public function test_photo_upload_is_limited_per_item(): void
+    {
+        Storage::fake('public');
+        config()->set('reports.photos.max_per_item', 2);
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('uploads.0', [
+                UploadedFile::fake()->image('uno.jpg', 800, 600),
+                UploadedFile::fake()->image('dos.jpg', 800, 600),
+                UploadedFile::fake()->image('tres.jpg', 800, 600),
+            ])
+            ->call('uploadPhotos', 0)
+            ->assertHasNoErrors();
+
+        $this->assertSame(2, ReportItem::where('ref', 'ART-01')->firstOrFail()->photos()->count());
+    }
+
+    public function test_heic_photo_uploads_are_rejected(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('uploads.0', [UploadedFile::fake()->create('foto.heic', 100, 'image/heic')])
+            ->call('uploadPhotos', 0);
+
+        $this->assertSame(0, ReportItem::where('ref', 'ART-01')->firstOrFail()->photos()->count());
+    }
+
+    public function test_photo_layout_can_be_changed(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('items.0.photo_layout', 'collage')
+            ->assertHasNoErrors();
+
+        $this->assertSame('collage', ReportItem::where('ref', 'ART-01')->firstOrFail()->photo_layout);
+    }
+
+    public function test_a_drive_folder_evidence_link_is_stored(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('items.0.evidence_url', 'https://drive.google.com/drive/folders/FOLDER123')
+            ->assertHasNoErrors();
+
+        $item = ReportItem::where('ref', 'ART-01')->firstOrFail();
+
+        $this->assertSame('https://drive.google.com/drive/folders/FOLDER123', $item->evidence_url);
+        $this->assertSame('FOLDER123', $item->drive_folder_id);
+    }
+
+    public function test_an_image_evidence_link_is_stored_without_a_drive_folder(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('items.0.evidence_url', 'https://cdn.example.com/foto.jpg')
+            ->assertHasNoErrors();
+
+        $item = ReportItem::where('ref', 'ART-01')->firstOrFail();
+
+        $this->assertSame('https://cdn.example.com/foto.jpg', $item->evidence_url);
+        $this->assertNull($item->drive_folder_id);
     }
 }

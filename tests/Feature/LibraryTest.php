@@ -88,7 +88,8 @@ class LibraryTest extends TestCase
         Livewire::actingAs($this->user)
             ->test('pages::reports.wizard', ['report' => $report])
             ->call('applyTemplate', 'conclusion', (string) $template->id)
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertSet('templateReset', 1);
 
         $this->assertSame(
             'Evento Fiestas en Guadalupe (Antioquia) del contrato PS-762026.',

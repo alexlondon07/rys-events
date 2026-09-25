@@ -138,27 +138,31 @@
                     </div>
                 </section>
 
-                @foreach ([['Programación artística', $artisticItems], ['Técnico y logística', $technicalItems]] as [$sectionTitle, $sectionItems])
+                @foreach ([['Programación artística', $artisticItems, '#C9A043'], ['Técnico y logística', $technicalItems, '#17150F']] as [$sectionTitle, $sectionItems, $sectionAccent])
                     <section class="overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm">
-                        <div class="flex items-center justify-between border-b border-[#E3DED3] px-5 py-4">
-                            <h2 class="font-display text-lg font-bold">{{ $sectionTitle }}</h2>
-                            <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $sectionItems->count() }} ítems</span>
+                        <div class="flex items-center justify-between gap-3 border-b border-[#E3DED3] bg-[#FBFAF6] px-5 py-3">
+                            <div class="flex items-center gap-2.5">
+                                <span class="h-4 w-1 rounded-full" style="background-color: {{ $sectionAccent }}"></span>
+                                <h2 class="text-[15px] font-semibold tracking-tight text-[#17150F]">{{ $sectionTitle }}</h2>
+                            </div>
+                            <span class="rounded-full border border-[#E3DED3] bg-white px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#5F584A]">{{ $sectionItems->count() }} ítems</span>
                         </div>
                         <div class="divide-y divide-[#EDE9E0]">
                             @forelse ($sectionItems as $item)
-                                <article class="grid gap-3 px-5 py-4 transition hover:bg-[#FBFAF6] md:grid-cols-[90px_minmax(0,1fr)_150px] md:items-center">
-                                    <span class="font-mono text-xs font-bold text-[#7F5C12]">{{ $item->ref }}</span>
+                                @php($complete = filled($item->narrative) && $item->photos->isNotEmpty())
+                                <article class="grid gap-2 px-5 py-3 transition hover:bg-[#FBFAF6] md:grid-cols-[72px_minmax(0,1fr)_auto] md:items-center">
+                                    <span class="font-mono text-[11px] font-bold tracking-tight text-[#7F5C12]">{{ $item->ref }}</span>
                                     <div class="min-w-0">
-                                        <p class="truncate font-semibold">{{ $item->artist_name ?: $item->category_label ?: 'Ítem sin nombre' }}</p>
-                                        <p class="mt-1 line-clamp-1 text-sm text-[#5F584A]">{{ $item->specification ?: 'Sin requerimiento registrado' }}</p>
+                                        <p class="truncate text-sm font-semibold leading-tight text-[#17150F]">{{ $item->artist_name ?: $item->category_label ?: 'Ítem sin nombre' }}</p>
+                                        <p class="mt-0.5 line-clamp-1 text-xs text-[#8A8274]">{{ $item->specification ?: 'Sin requerimiento registrado' }}</p>
                                     </div>
-                                    <div class="flex items-center gap-3 md:justify-end">
-                                        <span class="text-xs text-[#5F584A]">{{ $item->photos->count() }} fotos</span>
+                                    <div class="flex items-center gap-2 md:justify-end">
+                                        <span class="rounded-full bg-[#F3F1EC] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[#5F584A]">{{ $item->photos->count() }} fotos</span>
                                         <span @class([
-                                            'size-2 rounded-full',
-                                            'bg-[#2C7549]' => filled($item->narrative) && $item->photos->isNotEmpty(),
-                                            'bg-[#C9A043]' => blank($item->narrative) || $item->photos->isEmpty(),
-                                        ])></span>
+                                            'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                                            'bg-[#E7F3EC] text-[#2C7549]' => $complete,
+                                            'bg-[#FBEEDA] text-[#8F520A]' => ! $complete,
+                                        ])>{{ $complete ? 'Completo' : 'Pendiente' }}</span>
                                     </div>
                                 </article>
                             @empty
@@ -169,14 +173,21 @@
                 @endforeach
 
                 <section class="overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm">
-                    <div class="flex items-center justify-between border-b border-[#E3DED3] px-5 py-4">
-                        <div>
-                            <h2 class="font-display text-lg font-bold">Cargas de Excel</h2>
-                            <p class="mt-0.5 text-sm text-[#5F584A]">Historial versionado del archivo base del informe.</p>
+                    <div class="flex items-center justify-between gap-3 border-b border-[#E3DED3] bg-[#FBFAF6] px-5 py-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="h-4 w-1 rounded-full bg-[#17150F]"></span>
+                            <div>
+                                <h2 class="text-[15px] font-semibold tracking-tight text-[#17150F]">Cargas de Excel</h2>
+                                <p class="text-[11px] text-[#8A8274]">Historial versionado del archivo base.</p>
+                            </div>
                         </div>
-                        <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $report->imports->count() }}</span>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('reports.excel.viewer', ['informe' => $report->id]) }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7F5C12] hover:underline">
+                                <flux:icon.table-cells class="size-4" /> Visor del Excel
+                            </a>
+                            <span class="rounded-full border border-[#E3DED3] bg-white px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#5F584A]">{{ $report->imports->count() }}</span>
+                        </div>
                     </div>
-
                     <div class="divide-y divide-[#EDE9E0]">
                         @forelse ($report->imports as $import)
                             <article class="px-5 py-4">
@@ -198,7 +209,10 @@
                                         </p>
                                     </div>
 
-                                    <div class="flex shrink-0 items-center gap-2">
+                                    <div class="flex shrink-0 items-center gap-3">
+                                        <a href="{{ route('reports.excel.viewer', ['informe' => $report->id, 'carga' => $import->id]) }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#5F584A] hover:underline">
+                                            <flux:icon.magnifying-glass class="size-4" /> Analizar
+                                        </a>
                                         <a href="{{ route('reports.imports.download', [$report, $import]) }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#7F5C12] hover:underline">
                                             <flux:icon.arrow-down-tray class="size-4" /> Excel
                                         </a>
@@ -210,7 +224,7 @@
                                         <summary class="cursor-pointer text-sm font-semibold text-[#5F584A]">Ver qué cambió en esta carga ({{ $import->activityLogs->count() }})</summary>
                                         <ul class="mt-2 space-y-1.5">
                                             @foreach ($import->activityLogs->take(40) as $log)
-                                                <li class="text-xs text-[#5F584A]">
+                                                <li class="break-words text-xs text-[#5F584A]">
                                                     @if ($log->action === 'created')
                                                         <span class="font-semibold text-[#2C7549]">Se creó</span> {{ $log->item_ref ?: 'el informe' }}
                                                     @elseif ($log->action === 'deleted')
@@ -259,7 +273,7 @@
                     </dl>
                 </section>
 
-                <section class="rounded-xl border border-[#E3DED3] bg-white p-5 shadow-sm">
+                <section class="min-w-0 rounded-xl border border-[#E3DED3] bg-white p-5 shadow-sm">
                     <div class="flex items-center justify-between">
                         <h2 class="font-display font-bold">Historial de cambios</h2>
                         <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $activityCount }}</span>
@@ -267,19 +281,19 @@
 
                     <ol class="mt-4 space-y-4">
                         @forelse ($recentActivity as $log)
-                            <li class="border-s-2 border-[#E3DED3] ps-3">
-                                <p class="text-xs text-[#5F584A]">
+                            <li class="min-w-0 border-s-2 border-[#E3DED3] ps-3">
+                                <p class="break-words text-xs text-[#5F584A]">
                                     {{ $log->created_at?->format('d/m/Y H:i') }} · {{ $log->user?->name ?? 'Sistema' }} ·
                                     <span class="font-semibold text-[#7F5C12]">{{ ['app' => 'Aplicación', 'excel' => 'Carga Excel', 'drive' => 'Drive', 'system' => 'Sistema'][$log->source] ?? $log->source }}</span>
                                 </p>
-                                <p class="mt-1 text-sm text-[#17150F]">
+                                <p class="mt-1 break-words text-sm text-[#17150F]">
                                     @if ($log->action === 'created')
                                         Se creó <span class="font-semibold">{{ $log->item_ref ?: 'el informe' }}</span>
                                     @elseif ($log->action === 'deleted')
                                         Se eliminó <span class="font-semibold">{{ $log->item_ref ?: 'el informe' }}</span>
                                     @else
                                         <span class="font-semibold">{{ $log->label }}</span>@if ($log->item_ref) en {{ $log->item_ref }}@endif
-                                        <span class="mt-0.5 block text-xs text-[#5F584A]"><span class="line-through">{{ $log->old_value ?? '(vacío)' }}</span> → {{ $log->new_value ?? '(vacío)' }}</span>
+                                        <span class="mt-0.5 block break-words text-xs text-[#5F584A]"><span class="line-through">{{ $log->old_value ?? '(vacío)' }}</span> → {{ $log->new_value ?? '(vacío)' }}</span>
                                     @endif
                                 </p>
                             </li>

@@ -291,6 +291,10 @@ class ReportImportPreviewer
             $payload[$field] = $normalized;
         }
 
+        if (isset($payload['drive_folder_id'])) {
+            $payload['evidence_url'] = 'https://drive.google.com/drive/folders/'.$payload['drive_folder_id'];
+        }
+
         return $payload;
     }
 

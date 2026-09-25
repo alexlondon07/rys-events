@@ -144,9 +144,8 @@ class ReportExcelExporter
 
     private function folderUrl(ReportItem $item): ?string
     {
-        return $item->drive_folder_id
-            ? "https://drive.google.com/drive/folders/{$item->drive_folder_id}"
-            : null;
+        return $item->evidence_url
+            ?: ($item->drive_folder_id ? "https://drive.google.com/drive/folders/{$item->drive_folder_id}" : null);
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Models\CompanySetting;
 use App\Models\Report;
 use App\Models\ReportImport;
 use App\Models\ReportItem;
+use App\Services\Photos\CollageBuilder;
 use App\Services\Reports\ReportExcelExporter;
 use App\Services\Reports\ReportPdfGenerator;
 use App\Services\Text\TextTemplateRenderer;
@@ -31,10 +32,25 @@ class ReportController extends Controller
     {
         $report = $this->loadReport($report);
         $renderer = app(TextTemplateRenderer::class);
+        $collageBuilder = app(CollageBuilder::class);
+
+        $collages = $report->items
+            ->where('photo_layout', 'collage')
+            ->mapWithKeys(function (ReportItem $item) use ($collageBuilder): array {
+                $urls = [];
+
+                foreach ($item->photos->chunk($item->photosPerPage()) as $index => $chunk) {
+                    $path = $collageBuilder->build($item, $chunk);
+                    $urls[$index] = $path ? asset('storage/'.$path) : null;
+                }
+
+                return [$item->id => $urls];
+            });
 
         return view('reports.preview', [
             'report' => $report,
             'company' => CompanySetting::current(),
+            'collages' => $collages,
             'standardTexts' => $report->items->mapWithKeys(fn (ReportItem $item): array => [
                 $item->id => $item->add_standard_texts ? $renderer->standardTexts($report, $item) : '',
             ]),

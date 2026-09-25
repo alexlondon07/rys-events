@@ -9,8 +9,8 @@ use App\Models\Report;
 use App\Models\ReportItem;
 use App\Models\ReportItemPhoto;
 use App\Models\TextTemplate;
+use App\Services\Photos\EvidenceLink;
 use App\Services\Photos\PhotoOptimizer;
-use App\Services\ReportImport\ImportValueNormalizer;
 use App\Services\Text\TextTemplateRenderer;
 use Carbon\CarbonImmutable;
 use Flux\Flux;
@@ -82,6 +82,9 @@ new #[Title('Editar informe')] class extends Component {
     /** @var array<int, list<mixed>> */
     public array $uploads = [];
 
+    /** Cambia para reiniciar los selectores de plantilla al placeholder. */
+    public int $templateReset = 0;
+
     /** @var list<array{id:int, name:string}> */
     public array $municipalityOptions = [];
 
@@ -139,8 +142,8 @@ new #[Title('Editar informe')] class extends Component {
                 return;
             }
 
-            if (str_ends_with($name, '.drive_folder_id')) {
-                $this->syncDriveFolder($index);
+            if (str_ends_with($name, '.evidence_url')) {
+                $this->syncEvidenceUrl($index);
 
                 return;
             }
@@ -184,6 +187,7 @@ new #[Title('Editar informe')] class extends Component {
         };
 
         $this->persistReport();
+        $this->templateReset++;
         Flux::toast(variant: 'success', text: 'Plantilla aplicada.');
     }
 
@@ -244,13 +248,29 @@ new #[Title('Editar informe')] class extends Component {
             return;
         }
 
+        $item = $this->itemAt($index);
+        $limit = max(1, (int) config('reports.photos.max_per_item', 60));
+        $maxSize = max(1, (int) config('reports.photos.max_size_kb', 10240));
+        $mimes = implode(',', (array) config('reports.photos.mimes', ['jpg', 'jpeg', 'png', 'webp']));
+        $remaining = max(0, $limit - $item->photos()->count());
+
+        if ($remaining <= 0) {
+            $this->uploads[$index] = [];
+            Flux::toast(variant: 'danger', text: "Este ítem ya alcanzó el máximo de {$limit} fotos.");
+
+            return;
+        }
+
+        $requested = count($files);
+        $files = array_slice($files, 0, $remaining);
+
         try {
             $this->validate([
-                "uploads.{$index}.*" => ['image', 'mimes:jpg,jpeg,png,webp,heic', 'max:10240'],
+                "uploads.{$index}.*" => ['image', "mimes:{$mimes}", "max:{$maxSize}"],
             ], [
                 "uploads.{$index}.*.image" => 'Solo se permiten imágenes.',
-                "uploads.{$index}.*.mimes" => 'Formato no permitido (use JPG, PNG, WEBP o HEIC).',
-                "uploads.{$index}.*.max" => 'Cada imagen debe pesar menos de 10 MB.',
+                "uploads.{$index}.*.mimes" => 'Formato no permitido. Use JPG, PNG o WEBP (el HEIC del iPhone debe convertirse).',
+                "uploads.{$index}.*.max" => 'Cada imagen debe pesar menos de '.round($maxSize / 1024).' MB.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->uploads[$index] = [];
@@ -259,7 +279,7 @@ new #[Title('Editar informe')] class extends Component {
             return;
         }
 
-        $stored = $store->handle($this->itemAt($index), $files);
+        $stored = $store->handle($item, $files);
 
         $this->uploads[$index] = [];
         $this->report()->touch();
@@ -267,6 +287,12 @@ new #[Title('Editar informe')] class extends Component {
 
         if ($stored > 0) {
             Flux::toast(variant: 'success', text: "{$stored} foto(s) agregada(s).");
+        }
+
+        if ($requested > count($files)) {
+            Flux::toast(variant: 'warning', text: "Solo se cargaron {$stored} de {$requested} fotos: el ítem admite hasta {$limit}.");
+        } elseif ($stored < count($files)) {
+            Flux::toast(variant: 'warning', text: 'Algunas fotos no se pudieron procesar. Verifique el formato e intente de nuevo.');
         }
     }
 
@@ -355,12 +381,16 @@ new #[Title('Editar informe')] class extends Component {
         $this->loadItems();
     }
 
-    public function syncDriveFolder(int $index): void
+    public function syncEvidenceUrl(int $index): void
     {
         $item = $this->itemAt($index);
-        $folderId = app(ImportValueNormalizer::class)->driveFolderId((string) ($this->items[$index]['drive_folder_id'] ?? ''));
+        $link = EvidenceLink::make($this->items[$index]['evidence_url'] ?? null);
 
-        $item->update(['drive_folder_id' => $folderId, 'updated_in_app_at' => now()]);
+        $item->update([
+            'evidence_url' => $link?->url,
+            'drive_folder_id' => $link?->driveFolderId(),
+            'updated_in_app_at' => now(),
+        ]);
         $this->report()->touch();
         $this->loadItems();
     }
@@ -649,6 +679,9 @@ new #[Title('Editar informe')] class extends Component {
             'narrative' => trim((string) $data['narrative']) ?: null,
             'quantity' => is_numeric($data['quantity'] ?? null) ? round((float) $data['quantity'], 3) : null,
             'unit' => trim((string) ($data['unit'] ?? '')) ?: null,
+            'photo_layout' => in_array($data['photo_layout'] ?? null, ['single', 'pair', 'collage'], true)
+                ? $data['photo_layout']
+                : 'pair',
         ]);
         $item->updated_in_app_at = now();
         $item->save();
@@ -667,12 +700,14 @@ new #[Title('Editar informe')] class extends Component {
             'narrative' => (string) $item->narrative,
             'quantity' => $item->quantity === null ? '' : (string) $item->quantity,
             'unit' => (string) $item->unit,
+            'photo_layout' => (string) ($item->photo_layout ?: 'pair'),
             'drive_links' => $item->photos
                 ->where('source', 'drive')
                 ->pluck('drive_url')
                 ->filter()
                 ->implode("\n"),
-            'drive_folder_id' => (string) $item->drive_folder_id,
+            'evidence_url' => (string) ($item->evidence_url
+                ?: ($item->drive_folder_id ? "https://drive.google.com/drive/folders/{$item->drive_folder_id}" : '')),
             'photos' => $item->photos
                 ->map(fn ($photo): array => [
                     'id' => $photo->id,
@@ -735,6 +770,11 @@ new #[Title('Editar informe')] class extends Component {
         @endforeach
     </nav>
 
+    <div class="flex items-center justify-between">
+        <flux:button wire:click="goToStep({{ max(1, $step - 1) }})" variant="ghost" icon="chevron-left" :disabled="$step === 1">Anterior</flux:button>
+        <flux:button wire:click="goToStep({{ min(6, $step + 1) }})" variant="ghost" icon-trailing="chevron-right" :disabled="$step === 6">Siguiente</flux:button>
+    </div>
+
     @if ($step === 1)
         <section class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm">
             <h2 class="font-display text-lg font-bold">Contrato</h2>
@@ -780,7 +820,7 @@ new #[Title('Editar informe')] class extends Component {
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <span class="text-sm font-semibold text-[#17150F]">Introducción</span>
                         @if (($this->templates['introduction'] ?? collect())->isNotEmpty())
-                            <select wire:change="applyTemplate('introduction', $event.target.value)" class="rounded-lg border border-[#D3CBBB] bg-white px-3 py-1.5 text-sm font-semibold text-[#7F5C12]">
+                            <select wire:key="plantilla-introduction-{{ $templateReset }}" wire:change="applyTemplate('introduction', $event.target.value)" class="rounded-lg border border-[#D3CBBB] bg-white px-3 py-1.5 text-sm font-semibold text-[#7F5C12]">
                                 <option value="">Usar plantilla…</option>
                                 @foreach ($this->templates['introduction'] as $template)
                                     <option value="{{ $template->id }}">{{ $template->name }}</option>
@@ -794,7 +834,7 @@ new #[Title('Editar informe')] class extends Component {
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <span class="text-sm font-semibold text-[#17150F]">Descripción del evento</span>
                         @if (($this->templates['description'] ?? collect())->isNotEmpty())
-                            <select wire:change="applyTemplate('event_description', $event.target.value)" class="rounded-lg border border-[#D3CBBB] bg-white px-3 py-1.5 text-sm font-semibold text-[#7F5C12]">
+                            <select wire:key="plantilla-description-{{ $templateReset }}" wire:change="applyTemplate('event_description', $event.target.value)" class="rounded-lg border border-[#D3CBBB] bg-white px-3 py-1.5 text-sm font-semibold text-[#7F5C12]">
                                 <option value="">Usar plantilla…</option>
                                 @foreach ($this->templates['description'] as $template)
                                     <option value="{{ $template->id }}">{{ $template->name }}</option>
@@ -906,13 +946,21 @@ new #[Title('Editar informe')] class extends Component {
                             <flux:select.option value="{{ $unit }}">{{ $unit }}</flux:select.option>
                         @endforeach
                     </flux:select>
+                    <flux:select wire:model.live="items.{{ $index }}.photo_layout" label="Distribución de fotos">
+                        <flux:select.option value="single">1 por página</flux:select.option>
+                        <flux:select.option value="pair">2 por página</flux:select.option>
+                        <flux:select.option value="collage">Collage (hasta 4 por página)</flux:select.option>
+                    </flux:select>
                 </div>
 
                 <div class="mt-6 border-t border-[#EDE9E0] pt-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <p class="text-sm font-semibold text-[#17150F]">Evidencia fotográfica <span class="font-normal text-[#5F584A]">({{ count($item['photos']) }})</span></p>
+                        <div>
+                            <p class="text-sm font-semibold text-[#17150F]">Evidencia fotográfica <span class="font-normal text-[#5F584A]">({{ count($item['photos']) }})</span></p>
+                            <p class="mt-1 text-xs text-[#5F584A]">JPG, PNG o WEBP · máx. {{ round((int) config('reports.photos.max_size_kb', 10240) / 1024) }} MB por foto · hasta {{ (int) config('reports.photos.max_per_item', 60) }} por ítem.</p>
+                        </div>
                         <div class="flex items-center gap-3">
-                            <input wire:model="uploads.{{ $index }}" type="file" accept="image/*" multiple class="block text-sm text-[#5F584A] file:me-3 file:rounded-md file:border-0 file:bg-[#17150F] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white" />
+                            <input wire:model="uploads.{{ $index }}" type="file" accept="image/jpeg,image/png,image/webp" multiple class="block text-sm text-[#5F584A] file:me-3 file:rounded-md file:border-0 file:bg-[#17150F] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white" />
                             <flux:button size="sm" variant="primary" icon="arrow-up-tray" wire:click="uploadPhotos({{ $index }})" wire:loading.attr="disabled" wire:target="uploadPhotos">Subir</flux:button>
                         </div>
                     </div>
@@ -949,16 +997,25 @@ new #[Title('Editar informe')] class extends Component {
                     @endif
 
                     <div class="mt-6 rounded-lg border border-[#E3DED3] bg-[#FAF9F6] p-4">
-                        <p class="text-sm font-semibold text-[#17150F]">Enlaces de Google Drive</p>
-                        <p class="mt-1 text-xs text-[#5F584A]">Pegue los enlaces de las fotos (uno por línea) o la carpeta completa. La carpeta debe estar compartida como “cualquiera con el enlace”.</p>
+                        <p class="text-sm font-semibold text-[#17150F]">Evidencia por enlace</p>
+                        <p class="mt-1 text-xs text-[#5F584A]">Pegue los enlaces de las fotos (uno por línea) y/o un enlace a la carpeta o galería. Para Drive, comparta la carpeta como “cualquiera con el enlace”; también sirve una imagen directa (JPG/PNG/WEBP) u otro proveedor.</p>
                         <div class="mt-3 grid gap-4 lg:grid-cols-2">
-                            <flux:textarea wire:model.live.debounce.800ms="items.{{ $index }}.drive_links" label="Fotos (un enlace por línea)" rows="3" placeholder="https://drive.google.com/file/d/..." />
-                            <flux:input wire:model.live.debounce.800ms="items.{{ $index }}.drive_folder_id" label="Carpeta de Drive" type="text" placeholder="https://drive.google.com/drive/folders/..." />
+                            <flux:textarea wire:model.live.debounce.800ms="items.{{ $index }}.drive_links" label="Fotos de Drive (un enlace por línea)" rows="3" placeholder="https://drive.google.com/file/d/..." />
+                            <flux:input wire:model.live.debounce.800ms="items.{{ $index }}.evidence_url" label="Carpeta, galería o imagen" type="text" placeholder="https://drive.google.com/drive/folders/… o https://…/foto.jpg" />
                         </div>
-                        @if ($item['drive_folder_id'])
+                        @php($evidence = \App\Services\Photos\EvidenceLink::make($item['evidence_url'] ?? null))
+                        @if ($evidence?->type() === 'drive_folder')
                             <div class="mt-4 overflow-hidden rounded-lg border border-[#D3CBBB] bg-white">
-                                <iframe src="https://drive.google.com/embeddedfolderview?id={{ $item['drive_folder_id'] }}#grid" class="h-80 w-full" loading="lazy"></iframe>
+                                <iframe src="{{ $evidence->embedUrl() }}" class="h-80 w-full" loading="lazy"></iframe>
                             </div>
+                            <p class="mt-2 text-xs text-[#8A8274]">Si no se ve el contenido, la carpeta no está compartida como “cualquiera con el enlace”. <a href="{{ $evidence->openUrl() }}" target="_blank" rel="noopener" class="font-semibold text-[#7F5C12] underline">Abrir en Drive</a></p>
+                        @elseif ($evidence?->imageUrl())
+                            <img src="{{ $evidence->imageUrl() }}" alt="Vista previa de la evidencia" class="mt-4 max-h-80 w-full rounded-lg border border-[#D3CBBB] object-contain" referrerpolicy="no-referrer">
+                        @elseif ($evidence)
+                            <div class="mt-4 overflow-hidden rounded-lg border border-[#D3CBBB] bg-white">
+                                <iframe src="{{ $evidence->embedUrl() }}" class="h-80 w-full" loading="lazy"></iframe>
+                            </div>
+                            <p class="mt-2 text-xs text-[#8A8274]">Si el proveedor bloquea la vista incrustada, use el enlace directo. <a href="{{ $evidence->openUrl() }}" target="_blank" rel="noopener" class="font-semibold text-[#7F5C12] underline">Abrir enlace</a></p>
                         @endif
                     </div>
                 </div>
@@ -979,7 +1036,7 @@ new #[Title('Editar informe')] class extends Component {
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <span class="text-sm font-semibold text-[#17150F]">Conclusión</span>
                         @if (($this->templates['conclusion'] ?? collect())->isNotEmpty())
-                            <select wire:change="applyTemplate('conclusion', $event.target.value)" class="rounded-lg border border-[#D3CBBB] bg-white px-3 py-1.5 text-sm font-semibold text-[#7F5C12]">
+                            <select wire:key="plantilla-conclusion-{{ $templateReset }}" wire:change="applyTemplate('conclusion', $event.target.value)" class="rounded-lg border border-[#D3CBBB] bg-white px-3 py-1.5 text-sm font-semibold text-[#7F5C12]">
                                 <option value="">Usar plantilla…</option>
                                 @foreach ($this->templates['conclusion'] as $template)
                                     <option value="{{ $template->id }}">{{ $template->name }}</option>

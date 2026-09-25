@@ -23,6 +23,39 @@ class TemplateReader
      */
     public function read(string $path): array
     {
+        $sheets = $this->readSheets($path);
+
+        foreach (['Informe', 'Items', '_meta'] as $requiredSheet) {
+            if (! array_key_exists($requiredSheet, $sheets)) {
+                throw new InvalidArgumentException("Falta la hoja obligatoria {$requiredSheet}.");
+            }
+        }
+
+        $version = (string) ($sheets['_meta'][1][0] ?? '');
+
+        if ($version !== self::VERSION) {
+            throw new InvalidArgumentException('La versión de la plantilla no es compatible. Descargue la plantilla v1 desde el sistema.');
+        }
+
+        return [
+            'version' => $version,
+            'report' => $this->readReport($sheets['Informe']),
+            'items' => $this->readTable($sheets['Items'], self::ITEM_HEADERS, 200, 'Items'),
+            'photos' => isset($sheets['Fotos'])
+                ? $this->readTable($sheets['Fotos'], self::PHOTO_HEADERS, 1000, 'Fotos')
+                : [],
+        ];
+    }
+
+    /**
+     * Devuelve las hojas crudas del archivo, sin validar versión ni columnas.
+     * Lo usa el visor del Excel para mostrar la rejilla real tal como la ve
+     * la persona (incluidas la fila de claves y las filas de ayuda).
+     *
+     * @return array<string, array<int, list<mixed>>> nombre de hoja => [número de fila => celdas]
+     */
+    public function readSheets(string $path): array
+    {
         $reader = new Reader;
         $opened = false;
         $sheets = [];
@@ -48,26 +81,7 @@ class TemplateReader
             }
         }
 
-        foreach (['Informe', 'Items', '_meta'] as $requiredSheet) {
-            if (! array_key_exists($requiredSheet, $sheets)) {
-                throw new InvalidArgumentException("Falta la hoja obligatoria {$requiredSheet}.");
-            }
-        }
-
-        $version = (string) ($sheets['_meta'][1][0] ?? '');
-
-        if ($version !== self::VERSION) {
-            throw new InvalidArgumentException('La versión de la plantilla no es compatible. Descargue la plantilla v1 desde el sistema.');
-        }
-
-        return [
-            'version' => $version,
-            'report' => $this->readReport($sheets['Informe']),
-            'items' => $this->readTable($sheets['Items'], self::ITEM_HEADERS, 200, 'Items'),
-            'photos' => isset($sheets['Fotos'])
-                ? $this->readTable($sheets['Fotos'], self::PHOTO_HEADERS, 1000, 'Fotos')
-                : [],
-        ];
+        return $sheets;
     }
 
     /**
