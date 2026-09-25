@@ -4,6 +4,7 @@ namespace App\Services\Text;
 
 use App\Models\Report;
 use App\Models\ReportItem;
+use App\Models\TextTemplate;
 
 class TextTemplateRenderer
 {
@@ -45,5 +46,22 @@ class TextTemplateRenderer
             'artista' => (string) (optional($item)->artist_name ?? optional($item)->category_label ?? ''),
             'contrato' => (string) ($report->contract_number ?? ''),
         ];
+    }
+
+    /**
+     * Párrafos estándar de coordinación y hospitalidad, ya con variables
+     * reemplazadas. Se usan cuando el Excel marca "agregar textos estándar".
+     */
+    public function standardTexts(Report $report, ?ReportItem $item = null): string
+    {
+        $variables = $this->variablesFor($report, $item);
+
+        return TextTemplate::query()
+            ->whereIn('key', ['coordination', 'hospitality'])
+            ->where('active', true)
+            ->get()
+            ->sortBy(fn (TextTemplate $template): int => $template->key === 'coordination' ? 0 : 1)
+            ->map(fn (TextTemplate $template): string => $this->render($template->body_with_variables, $variables))
+            ->implode("\n\n");
     }
 }

@@ -44,4 +44,16 @@ class ReportItem extends Model
     {
         return $this->hasMany(ReportItemPhoto::class)->orderBy('sort_order');
     }
+
+    /**
+     * Fotos que caben por página según la distribución elegida en el Excel.
+     */
+    public function photosPerPage(): int
+    {
+        return match ($this->photo_layout) {
+            'single' => 1,
+            'collage' => 4,
+            default => 2,
+        };
+    }
 }

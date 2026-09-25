@@ -6,7 +6,7 @@
     <title>Vista previa · {{ $report->contract_number }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        .report-page { width: 210mm; min-height: 297mm; margin: 0 auto 24px; background: white; box-shadow: 0 8px 30px rgba(23, 21, 15, .12); position: relative; overflow: hidden; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        .report-page { width: 210mm; min-height: 296mm; margin: 0 auto 24px; background: white; box-shadow: 0 8px 30px rgba(23, 21, 15, .12); position: relative; overflow: hidden; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
         .report-watermark { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font: 800 64px Archivo, sans-serif; letter-spacing: .16em; color: rgba(143, 82, 10, .065); transform: rotate(-28deg); }
         .report-header { height: 20mm; background: #0F0E0B; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 18mm; border-bottom: 2px solid #C9A043; }
         .report-footer { position: absolute; bottom: 0; left: 0; right: 0; height: 13mm; background: #0F0E0B; border-top: 2px solid #C9A043; color: #CFC8B8; display: flex; align-items: center; justify-content: space-between; padding: 0 18mm; font-size: 10px; }
@@ -21,8 +21,10 @@
         @media print {
             @page { size: A4; margin: 0; }
             body { background: white !important; }
+            main { padding: 0 !important; }
             .preview-toolbar { display: none !important; }
             .report-page { margin: 0; box-shadow: none; break-after: page; }
+            .report-page:last-child { break-after: auto; }
         }
     </style>
 </head>
@@ -105,6 +107,10 @@
         </section>
 
         @foreach ($report->items as $item)
+            @php($layout = $item->photo_layout ?: 'pair')
+            @php($gridClass = $layout === 'single' ? 'grid-cols-1' : 'grid-cols-2')
+            @php($imageClass = $layout === 'single' ? 'h-[140mm]' : 'h-64')
+
             <section class="report-page">
                 <div class="report-watermark">BORRADOR</div>
                 @include('reports.partials.preview-header')
@@ -122,38 +128,65 @@
                     <div class="mt-7 overflow-hidden rounded-lg border border-[#D3CBBB]">
                         <div class="grid grid-cols-[160px_1fr] border-b border-[#E3DED3]"><p class="bg-[#F3F1EC] p-4 text-xs font-bold uppercase text-[#5F584A]">Categoría</p><p class="p-4 text-sm font-semibold">{{ $item->category_label ?: '—' }}</p></div>
                         <div class="grid grid-cols-[160px_1fr] border-b border-[#E3DED3]"><p class="bg-[#F3F1EC] p-4 text-xs font-bold uppercase text-[#5F584A]">Requerimiento</p><p class="whitespace-pre-line p-4 text-sm leading-6">{{ $item->specification ?: '—' }}</p></div>
-                        <div class="grid grid-cols-[160px_1fr]"><p class="bg-[#F3F1EC] p-4 text-xs font-bold uppercase text-[#5F584A]">Actividad ejecutada</p><p class="whitespace-pre-line p-4 text-sm leading-6">{{ $item->narrative ?: 'Pendiente por completar.' }}</p></div>
+                        <div class="grid grid-cols-[160px_1fr]">
+                            <p class="bg-[#F3F1EC] p-4 text-xs font-bold uppercase text-[#5F584A]">Actividad ejecutada</p>
+                            <div class="p-4 text-sm leading-6">
+                                <p class="whitespace-pre-line">{{ $item->narrative ?: 'Pendiente por completar.' }}</p>
+                                @if (! empty($standardTexts[$item->id] ?? ''))
+                                    <p class="mt-3 whitespace-pre-line text-[#3E392F]">{{ $standardTexts[$item->id] }}</p>
+                                @endif
+                            </div>
+                        </div>
                     </div>
 
-                    <h3 class="font-display mt-8 text-lg font-bold">Evidencia fotográfica</h3>
                     @if ($item->photos->isEmpty() && ! $item->drive_folder_id)
-                        <div class="mt-4 flex h-40 flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#D3CBBB] bg-[#FBFAF6] text-center">
+                        <div class="mt-6 flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#D3CBBB] bg-[#FBFAF6] text-center">
                             <p class="font-semibold text-[#5F584A]">Sin evidencia fotográfica</p>
-                            <p class="mt-1 text-xs text-[#8A8274]">Pegue los enlaces de Google Drive en el asistente de edición.</p>
+                            <p class="mt-1 text-xs text-[#8A8274]">Agregue las fotos en el asistente de edición.</p>
                         </div>
-                    @else
-                        @if ($item->photos->isNotEmpty())
-                            <div class="mt-4 grid grid-cols-2 gap-4">
-                                @foreach ($item->photos->take(4) as $photo)
+                    @endif
+                </div>
+                @include('reports.partials.preview-footer', ['pageLabel' => $item->ref])
+            </section>
+
+            @if ($item->photos->isNotEmpty())
+                @foreach ($item->photos->chunk($item->photosPerPage()) as $photoChunk)
+                    <section class="report-page">
+                        <div class="report-watermark">BORRADOR</div>
+                        @include('reports.partials.preview-header')
+                        <div class="report-content">
+                            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7F5C12]">{{ $item->ref }} · Evidencia fotográfica</p>
+                            <h2 class="font-display mt-2 text-xl font-bold">{{ $item->artist_name ?: $item->category_label ?: 'Ítem' }}</h2>
+                            <div class="mt-5 grid {{ $gridClass }} gap-4">
+                                @foreach ($photoChunk as $photo)
                                     <figure class="overflow-hidden rounded-lg border border-[#E3DED3]">
                                         @if ($photo->fullUrl())
-                                            <img src="{{ $photo->fullUrl() }}" alt="{{ $photo->caption }}" class="h-48 w-full object-cover" referrerpolicy="no-referrer">
+                                            <img src="{{ $photo->fullUrl() }}" alt="{{ $photo->caption }}" class="{{ $imageClass }} w-full object-cover" referrerpolicy="no-referrer">
                                         @endif
                                         <figcaption class="p-3 text-xs text-[#5F584A]">{{ $photo->caption ?: 'Sin título' }}</figcaption>
                                     </figure>
                                 @endforeach
                             </div>
-                        @endif
+                        </div>
+                        @include('reports.partials.preview-footer', ['pageLabel' => $item->ref.' · fotos'])
+                    </section>
+                @endforeach
+            @endif
 
-                        @if ($item->drive_folder_id)
-                            <div class="mt-4 overflow-hidden rounded-lg border border-[#D3CBBB]">
-                                <iframe src="https://drive.google.com/embeddedfolderview?id={{ $item->drive_folder_id }}#grid" class="h-[180mm] w-full" loading="lazy"></iframe>
-                            </div>
-                        @endif
-                    @endif
-                </div>
-                @include('reports.partials.preview-footer', ['pageLabel' => $item->ref])
-            </section>
+            @if ($item->drive_folder_id)
+                <section class="report-page">
+                    <div class="report-watermark">BORRADOR</div>
+                    @include('reports.partials.preview-header')
+                    <div class="report-content">
+                        <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7F5C12]">{{ $item->ref }} · Evidencia fotográfica (carpeta de Drive)</p>
+                        <h2 class="font-display mt-2 text-xl font-bold">{{ $item->artist_name ?: $item->category_label ?: 'Ítem' }}</h2>
+                        <div class="mt-5 overflow-hidden rounded-lg border border-[#D3CBBB]">
+                            <iframe src="https://drive.google.com/embeddedfolderview?id={{ $item->drive_folder_id }}#grid" class="h-[210mm] w-full" loading="lazy"></iframe>
+                        </div>
+                    </div>
+                    @include('reports.partials.preview-footer', ['pageLabel' => $item->ref.' · fotos'])
+                </section>
+            @endif
         @endforeach
 
         <section class="report-page">
@@ -163,9 +196,14 @@
                 <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7F5C12]">Cierre</p>
                 <h2 class="font-display mt-3 text-3xl font-bold">Conclusión</h2>
                 <p class="mt-7 whitespace-pre-line text-sm leading-7 text-[#3E392F]">{{ $report->conclusion ?: 'Pendiente por completar.' }}</p>
-                <div class="mt-20 border-t border-[#17150F] pt-4">
-                    <p class="font-display text-lg font-bold">{{ $report->signer_name ?: 'Firmante pendiente' }}</p>
-                    <p class="mt-1 text-sm text-[#5F584A]">Representante Legal · Grupo RYS S.A.S.</p>
+
+                @if (! empty($company?->signature_path))
+                    <img src="{{ asset('storage/'.$company->signature_path) }}" alt="Firma" class="mt-16 h-20 w-auto object-contain">
+                @endif
+
+                <div class="mt-8 border-t border-[#17150F] pt-4">
+                    <p class="font-display text-lg font-bold">{{ $report->signer_name ?: ($company?->legal_rep_name ?: 'Firmante pendiente') }}</p>
+                    <p class="mt-1 text-sm text-[#5F584A]">{{ $company?->legal_rep_title ?: 'Representante Legal' }} · {{ $company?->name ?: 'Grupo RYS S.A.S.' }}</p>
                 </div>
             </div>
             @include('reports.partials.preview-footer', ['pageLabel' => 'Cierre'])

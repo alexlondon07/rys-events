@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
 use App\Models\Report;
 use App\Models\ReportImport;
+use App\Models\ReportItem;
+use App\Services\Reports\ReportPdfGenerator;
+use App\Services\Text\TextTemplateRenderer;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -19,9 +24,50 @@ class ReportController extends Controller
 
     public function preview(Report $report): View
     {
+        $report = $this->loadReport($report);
+        $renderer = app(TextTemplateRenderer::class);
+
         return view('reports.preview', [
-            'report' => $this->loadReport($report),
+            'report' => $report,
+            'company' => CompanySetting::current(),
+            'standardTexts' => $report->items->mapWithKeys(fn (ReportItem $item): array => [
+                $item->id => $item->add_standard_texts ? $renderer->standardTexts($report, $item) : '',
+            ]),
         ]);
+    }
+
+    /**
+     * Vista que Chrome renderiza para generar el PDF (URL firmada, sin sesión).
+     */
+    public function pdfRender(Report $report): View
+    {
+        return $this->preview($report);
+    }
+
+    /**
+     * Genera el PDF del informe y lo guarda en el storage.
+     */
+    public function generatePdf(Report $report, ReportPdfGenerator $generator): RedirectResponse
+    {
+        try {
+            $generator->generate($report);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'No se pudo generar el PDF. Verifique que Chrome esté disponible e intente de nuevo.');
+        }
+
+        return back()->with('status', 'PDF generado correctamente.');
+    }
+
+    /**
+     * Descarga el PDF ya generado del informe.
+     */
+    public function downloadPdf(Report $report): StreamedResponse
+    {
+        abort_unless($report->pdf_path && Storage::disk('local')->exists($report->pdf_path), 404);
+
+        return Storage::disk('local')->download($report->pdf_path, "informe-{$report->contract_number}.pdf");
     }
 
     /**
