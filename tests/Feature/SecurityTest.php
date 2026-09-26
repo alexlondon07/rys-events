@@ -129,13 +129,13 @@ class SecurityTest extends TestCase
         $this->assertTrue($user->active);
     }
 
-    public function test_admin_without_two_factor_is_redirected_to_security_settings(): void
+    public function test_admin_without_two_factor_can_access_the_app(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
 
         $this->actingAs($admin)
             ->get(route('dashboard'))
-            ->assertRedirect(route('security.edit'));
+            ->assertOk();
     }
 
     public function test_admin_with_two_factor_can_access_the_app(): void
@@ -150,16 +150,6 @@ class SecurityTest extends TestCase
         $editor = User::factory()->create(['email_verified_at' => now()]);
 
         $this->actingAs($editor)->get(route('dashboard'))->assertOk();
-    }
-
-    public function test_admin_can_reach_the_security_settings_to_enable_two_factor(): void
-    {
-        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
-
-        $this->actingAs($admin)
-            ->withSession(['auth.password_confirmed_at' => time()])
-            ->get(route('security.edit'))
-            ->assertOk();
     }
 
     public function test_the_csp_is_report_only_by_default(): void

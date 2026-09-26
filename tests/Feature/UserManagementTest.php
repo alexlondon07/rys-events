@@ -219,7 +219,8 @@ class UserManagementTest extends TestCase
             ->set('resetPassword', 'NuevaClave123')
             ->set('resetPasswordConfirmation', 'NuevaClave123')
             ->call('resetPassword')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDispatched('modal-close', name: 'reset-password');
 
         $this->assertTrue(Hash::check('NuevaClave123', $user->fresh()->password));
     }

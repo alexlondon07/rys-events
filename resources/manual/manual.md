@@ -22,7 +22,7 @@ El flujo típico es:
 - Ingrese con su **correo y contraseña** en la pantalla de inicio.
 - También puede entrar con **llave de acceso (passkey)** si la tiene configurada.
 - Si olvidó la contraseña, use **“¿Olvidó su contraseña?”** para restablecerla.
-- La **verificación en dos pasos (2FA)** es obligatoria para los administradores. Si es admin y no la tiene activa, el sistema lo llevará a **Configuración › Seguridad** para activarla.
+- La **verificación en dos pasos (2FA)** es opcional. Cada usuario puede activarla desde **Configuración › Seguridad** para añadir un código de su aplicación autenticadora al iniciar sesión.
 - Las cuentas las crea un **administrador**; no hay registro público.
 
 ## Roles y permisos

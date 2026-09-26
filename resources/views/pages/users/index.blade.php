@@ -260,6 +260,7 @@ new #[Title('Usuarios')] class extends Component {
         $this->resetValidation();
 
         Flux::toast(variant: 'success', text: 'Contraseña actualizada.');
+        $this->dispatch('modal-close', name: 'reset-password');
     }
 
     #[Computed]
@@ -440,9 +441,7 @@ new #[Title('Usuarios')] class extends Component {
                     <flux:button type="button" variant="ghost">Cancelar</flux:button>
                 </flux:modal.close>
 
-                <flux:modal.close>
-                    <flux:button type="submit" variant="primary" icon="check">Guardar</flux:button>
-                </flux:modal.close>
+                <flux:button type="submit" variant="primary" icon="check">Guardar</flux:button>
             </div>
         </form>
     </flux:modal>

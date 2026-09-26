@@ -170,15 +170,6 @@ new #[Title('Security settings')] class extends Component {
     @include('partials.settings-heading')
     @include('partials.settings-nav')
 
-    @if (auth()->user()->isAdmin() && is_null(auth()->user()->two_factor_confirmed_at))
-        <section class="rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-950 shadow-sm">
-            <flux:heading size="lg">Complete la verificación en dos pasos</flux:heading>
-            <flux:text class="mt-2 text-amber-900">
-                Para continuar en la aplicación, active 2FA más abajo: pulse “Activar 2FA”, escanee el código con Google Authenticator, Authy o una aplicación equivalente y confirme el código de seis dígitos.
-            </flux:text>
-        </section>
-    @endif
-
     <x-pages::settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
         <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
             <flux:input

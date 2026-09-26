@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -53,21 +52,6 @@ class SecurityTest extends TestCase
             ->get(route('security.edit'));
 
         $response->assertRedirect(route('password.confirm'));
-    }
-
-    public function test_administrator_without_confirmed_two_factor_sees_required_setup_guidance(): void
-    {
-        $user = User::factory()->create([
-            'role' => UserRole::Admin,
-            'two_factor_confirmed_at' => null,
-        ]);
-
-        $this->actingAs($user)
-            ->withSession(['auth.password_confirmed_at' => time()])
-            ->get(route('security.edit'))
-            ->assertOk()
-            ->assertSee('Complete la verificación en dos pasos')
-            ->assertSee('Para continuar en la aplicación');
     }
 
     public function test_security_settings_page_renders_without_two_factor_when_feature_is_disabled(): void

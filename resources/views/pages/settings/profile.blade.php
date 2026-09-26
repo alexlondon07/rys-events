@@ -80,7 +80,7 @@ new #[Title('Mi perfil')] class extends Component {
                         'bg-[#2C7549]' => auth()->user()->two_factor_confirmed_at,
                         'bg-[#C9A043]' => ! auth()->user()->two_factor_confirmed_at,
                     ])></span>
-                    {{ auth()->user()->two_factor_confirmed_at ? '2FA activo' : '2FA pendiente de configurar' }}
+                    {{ auth()->user()->two_factor_confirmed_at ? '2FA activo' : '2FA no activado' }}
                 </div>
                 <flux:button :href="route('security.edit')" class="mt-5 w-full" variant="ghost" icon="key" wire:navigate>
                     Abrir seguridad

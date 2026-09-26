@@ -409,8 +409,8 @@ bloquean).
 ## Seguridad
 
 - **Registro público desactivado**: las cuentas las crea un administrador en “Usuarios y roles”.
-- **2FA obligatorio para administradores**: si un admin no lo tiene activo, se le redirige a
-  “Seguridad” para configurarlo (`RequireTwoFactorForAdmins`).
+- **2FA opcional**: cada usuario puede activarlo desde “Seguridad”; quien lo active deberá
+  confirmar el código de su aplicación autenticadora al iniciar sesión.
 - **`role`/`active` no son asignables en masa** (se cambian solo desde el panel de usuarios).
 - **Autenticación** con Fortify: 2FA (TOTP), códigos de recuperación y passkeys; login con
   *rate limiting*.
