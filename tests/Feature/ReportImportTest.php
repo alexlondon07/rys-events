@@ -234,6 +234,31 @@ class ReportImportTest extends TestCase
         $this->assertSame(1, ReportImport::where('status', 'previewing')->count());
     }
 
+    public function test_a_pending_preview_can_be_reopened_and_discarded(): void
+    {
+        Storage::fake('local');
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.import')
+            ->set('file', UploadedFile::fake()->createWithContent('e.xlsx', file_get_contents($this->examplePath())))
+            ->call('generatePreview')
+            ->assertSet('preview.contract_number', 'PS-762026');
+
+        $import = ReportImport::where('status', 'previewing')->firstOrFail();
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.import')
+            ->call('loadPreview', $import->id)
+            ->assertSet('preview.contract_number', 'PS-762026');
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.import')
+            ->call('prepareDiscard', $import->id)
+            ->call('discardImport');
+
+        $this->assertSame(0, ReportImport::where('status', 'previewing')->count());
+    }
+
     public function test_the_history_hides_imports_of_deleted_reports(): void
     {
         $this->applyExample();

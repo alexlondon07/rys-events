@@ -19,6 +19,8 @@ new #[Title('Importar desde Excel')] class extends Component {
 
     public ?int $importId = null;
 
+    public ?int $discardId = null;
+
     /** @var array<string, mixed> */
     public array $preview = [];
 
@@ -120,6 +122,73 @@ new #[Title('Importar desde Excel')] class extends Component {
     {
         $this->reset(['file', 'importId', 'preview', 'resolutions', 'result']);
         $this->resetErrorBag();
+    }
+
+    /**
+     * Reabre una vista previa pendiente desde el historial, sin volver a subir
+     * el archivo.
+     */
+    public function loadPreview(int $importId): void
+    {
+        $import = ReportImport::query()
+            ->where('user_id', Auth::id())
+            ->where('status', 'previewing')
+            ->findOrFail($importId);
+
+        $this->importId = $import->id;
+        $this->preview = $import->summary['preview'] ?? [];
+        $this->duplicateFile = (bool) ($import->summary['duplicate'] ?? false);
+        $this->resolutions = [];
+        $this->result = [];
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Prepara el modal de confirmación para descartar una vista previa.
+     */
+    public function prepareDiscard(int $importId): void
+    {
+        $this->discardId = $importId;
+    }
+
+    /**
+     * Descarta la vista previa seleccionada (y su archivo).
+     */
+    public function discardImport(): void
+    {
+        if ($this->discardId === null) {
+            return;
+        }
+
+        $import = ReportImport::query()
+            ->where('user_id', Auth::id())
+            ->where('status', 'previewing')
+            ->find($this->discardId);
+
+        if ($import) {
+            if ($import->file_path) {
+                Storage::disk('local')->delete($import->file_path);
+            }
+
+            $import->delete();
+        }
+
+        if ($this->importId === $this->discardId) {
+            $this->reviewAnotherFile();
+        }
+
+        $this->discardId = null;
+        unset($this->history);
+
+        Flux::toast(variant: 'success', text: 'Vista previa descartada.');
+    }
+
+    #[Computed]
+    public function discardTarget(): ?ReportImport
+    {
+        return $this->discardId !== null
+            ? ReportImport::query()->where('user_id', Auth::id())->find($this->discardId)
+            : null;
     }
 
     #[Computed]
@@ -382,15 +451,42 @@ new #[Title('Importar desde Excel')] class extends Component {
                                 <p class="font-semibold">{{ $historyItem->report?->contract_number ?? $historyItem->original_name }}</p>
                                 <p class="mt-1 text-sm text-[#5F584A]">{{ $historyItem->created_at->format('d/m/Y H:i') }} · {{ $historyItem->original_name }}</p>
                             </div>
-                            <span @class([
-                                'w-fit rounded-full px-2.5 py-1 text-xs font-semibold',
-                                'bg-[#E4F1E8] text-[#2C7549]' => $historyItem->status === 'applied',
-                                'bg-[#F6EEDB] text-[#7F5C12]' => $historyItem->status === 'previewing',
-                                'bg-[#F9E3E0] text-[#A8261D]' => $historyItem->status === 'failed',
-                            ])>{{ match ($historyItem->status) { 'applied' => 'Aplicada', 'failed' => 'Fallida', default => 'En revisión' } }}</span>
+                            <div class="flex items-center gap-2">
+                                @if ($historyItem->status === 'previewing')
+                                    <flux:button size="sm" variant="primary" icon="eye" wire:click="loadPreview({{ $historyItem->id }})">Ver</flux:button>
+                                    <flux:button size="sm" variant="ghost" icon="trash" wire:click="prepareDiscard({{ $historyItem->id }})" x-on:click="$dispatch('modal-show', { name: 'descartar-carga' })">Descartar</flux:button>
+                                @endif
+                                <span @class([
+                                    'w-fit rounded-full px-2.5 py-1 text-xs font-semibold',
+                                    'bg-[#E4F1E8] text-[#2C7549]' => $historyItem->status === 'applied',
+                                    'bg-[#F6EEDB] text-[#7F5C12]' => $historyItem->status === 'previewing',
+                                    'bg-[#F9E3E0] text-[#A8261D]' => $historyItem->status === 'failed',
+                                ])>{{ match ($historyItem->status) { 'applied' => 'Aplicada', 'failed' => 'Fallida', default => 'En revisión' } }}</span>
+                            </div>
                         </div>
                     @endforeach
                 </div>
             </section>
         @endif
+
+        <flux:modal name="descartar-carga" class="max-w-md">
+            <div class="space-y-6">
+                <div>
+                    <flux:heading size="lg">¿Descartar la vista previa?</flux:heading>
+                    <flux:subheading>
+                        Se borrará esta carga en revisión{{ $this->discardTarget ? ' de '.$this->discardTarget->original_name : '' }} y su archivo. El informe no cambia.
+                    </flux:subheading>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <flux:modal.close>
+                        <flux:button variant="ghost">Cancelar</flux:button>
+                    </flux:modal.close>
+
+                    <flux:modal.close>
+                        <flux:button variant="danger" wire:click="discardImport">Descartar</flux:button>
+                    </flux:modal.close>
+                </div>
+            </div>
+        </flux:modal>
 </div>
