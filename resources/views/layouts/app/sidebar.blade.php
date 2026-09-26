@@ -8,12 +8,16 @@
             document.documentElement.style.colorScheme = 'light';
         </script>
     </head>
-    <body class="min-h-screen bg-[#F3F1EC] text-[#17150F]">
+    <body class="min-h-screen bg-[#EEEBE3] text-[#17150F]">
         <flux:sidebar sticky collapsible="mobile" class="border-e border-[#2A2720] !bg-[#0F0E0B] !text-white">
             <flux:sidebar.header>
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
+
+            <div class="mx-3 mb-5 border-y border-white/10 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#AAA294]">
+                Registro de actividades
+            </div>
 
             <flux:sidebar.nav>
                 <flux:sidebar.group heading="Gestión" class="grid">

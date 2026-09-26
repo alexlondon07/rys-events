@@ -132,8 +132,9 @@ html[data-theme='rys'] [data-flux-sidebar-item]:hover {
 }
 
 html[data-theme='rys'] [data-flux-sidebar-item][data-current] {
-    background-color: #ffffff !important;
-    color: #17150f !important;
+    background-color: #26231C !important;
+    box-shadow: inset 3px 0 0 #C9A043;
+    color: #ffffff !important;
 }
 
 html[data-theme='rys'] [data-flux-sidebar-item] svg {
@@ -162,6 +163,7 @@ html[data-theme='rys'] [data-flux-sidebar-group] {
         linear-gradient(to bottom, rgba(127, 92, 18, 0.05) 1px, transparent 1px);
     background-size: 100% 8rem;
 }
+
 
 /* \[:where(&)\]:size-4 {
     @apply size-4;

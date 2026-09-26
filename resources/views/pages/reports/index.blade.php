@@ -226,12 +226,12 @@ new #[Title('Informes')] class extends Component {
     }
 }; ?>
 
-<div class="mx-auto flex w-full max-w-6xl flex-col gap-6 py-4">
-    <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-            <p class="text-sm font-medium text-[#7F5C12]">Informes de actividades</p>
-            <h1 class="font-display mt-1 text-3xl font-semibold text-[#17150F]">Informes</h1>
-            <p class="mt-2 text-[#5F584A]">Cree un informe nuevo o complételo desde la plantilla oficial.</p>
+<div class="rys-workspace mx-auto flex w-full max-w-6xl flex-col gap-6 py-4">
+    <header class="flex flex-col justify-between gap-5 border-b border-[#D8D1C2] pb-6 sm:flex-row sm:items-end">
+        <div class="border-l-2 border-[#C9A043] pl-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7F5C12]">Control de informes</p>
+            <h1 class="font-display mt-1 text-3xl font-semibold tracking-[-0.025em] text-[#17150F]">Registro de actividades</h1>
+            <p class="mt-2 text-[#5F584A]">Cree, revise y complete los soportes de cada contrato.</p>
         </div>
         <div class="flex flex-wrap gap-3">
             <flux:button wire:click="openCreate" icon="plus" variant="primary">Nuevo informe</flux:button>
@@ -269,26 +269,30 @@ new #[Title('Informes')] class extends Component {
         </form>
     @endif
 
-    <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section class="grid grid-cols-2 gap-px overflow-hidden border border-[#D3CBBB] bg-[#D3CBBB] lg:grid-cols-4">
         @foreach ([
             ['Total', $this->stats['total'], 'document-text'],
             ['Borradores', $this->stats['drafts'], 'pencil-square'],
             ['Finalizados', $this->stats['finals'], 'check-badge'],
             ['Ítems cargados', $this->stats['items'], 'rectangle-stack'],
         ] as [$label, $value, $icon])
-            <article class="flex items-center gap-3 rounded-xl border border-[#E3DED3] bg-white p-4 shadow-sm">
-                <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F6EEDB] text-[#7F5C12]">
+            <article class="flex items-center gap-3 bg-white p-4">
+                <span class="flex size-9 shrink-0 items-center justify-center border border-[#E1C979] bg-[#F9F4E8] text-[#7F5C12]">
                     <flux:icon :name="$icon" class="size-5" />
                 </span>
                 <div class="min-w-0">
                     <p class="font-display text-2xl font-bold leading-none text-[#17150F]">{{ $value }}</p>
-                    <p class="mt-1 truncate text-xs text-[#5F584A]">{{ $label }}</p>
+                    <p class="mt-1 truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5F584A]">{{ $label }}</p>
                 </div>
             </article>
         @endforeach
     </section>
 
-    <section class="rounded-xl border border-[#E3DED3] bg-white p-4 shadow-sm">
+    <section class="border border-[#D3CBBB] bg-white p-4">
+        <div class="mb-4 flex items-center gap-3">
+            <span class="h-px w-8 bg-[#C9A043]"></span>
+            <p class="text-[11px] font-bold uppercase tracking-[0.13em] text-[#7F5C12]">Consultar registro</p>
+        </div>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <flux:input wire:model.live.debounce.400ms="search" icon="magnifying-glass" placeholder="Buscar contrato, evento o municipio" />
 
@@ -361,7 +365,11 @@ new #[Title('Informes')] class extends Component {
         </div>
 
         {{-- Tabla en escritorio --}}
-        <div class="hidden overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm lg:block">
+        <div class="hidden overflow-hidden border border-[#D3CBBB] bg-white lg:block">
+            <div class="flex items-center justify-between border-b border-[#E3DED3] px-5 py-3">
+                <p class="text-[11px] font-bold uppercase tracking-[0.13em] text-[#7F5C12]">Registro de informes</p>
+                <p class="text-xs text-[#5F584A]">{{ $this->reports->total() }} en esta vista</p>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="border-b border-[#E3DED3] bg-[#FAF9F6] text-xs font-semibold uppercase tracking-wide text-[#5F584A]">
