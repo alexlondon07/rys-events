@@ -152,6 +152,17 @@ html[data-theme='rys'] [data-flux-sidebar-group] {
     color: #8c8577 !important;
 }
 
+/*
+ * La entrada al sistema toma como referencia una carátula de expediente:
+ * regla de registro y marca de archivo, sin fondos difusos ni adornos que
+ * compitan con la tarea de autenticarse.
+ */
+.rys-auth-shell {
+    background-image:
+        linear-gradient(to bottom, rgba(127, 92, 18, 0.05) 1px, transparent 1px);
+    background-size: 100% 8rem;
+}
+
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
