@@ -62,6 +62,17 @@ class ReportImportApplier
             ->where('contract_number', $preview['contract_number'])
             ->lockForUpdate()
             ->first();
+
+        // Si el contrato tiene un informe eliminado (soft delete), se purga para
+        // poder recrearlo desde el Excel (el número de contrato es único).
+        if (! $existingReport) {
+            Report::withTrashed()
+                ->where('contract_number', $preview['contract_number'])
+                ->whereNotNull('deleted_at')
+                ->get()
+                ->each(fn (Report $trashed) => $trashed->forceDelete());
+        }
+
         $this->assertFresh($existingReport?->updated_at?->toIso8601String(), $preview['report_expected_updated_at'], 'El informe');
 
         $isNewReport = ! $existingReport;

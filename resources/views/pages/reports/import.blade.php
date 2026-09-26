@@ -65,6 +65,21 @@ new #[Title('Importar desde Excel')] class extends Component {
             ->where('status', 'applied')
             ->exists();
 
+        // Descarta las vistas previas pendientes del mismo contrato: al subir de
+        // nuevo, solo queda la última en revisión.
+        ReportImport::query()
+            ->where('user_id', Auth::id())
+            ->where('status', 'previewing')
+            ->get()
+            ->filter(fn (ReportImport $pending): bool => ($pending->summary['preview']['contract_number'] ?? null) === $preview['contract_number'])
+            ->each(function (ReportImport $pending): void {
+                if ($pending->file_path) {
+                    Storage::disk('local')->delete($pending->file_path);
+                }
+
+                $pending->delete();
+            });
+
         $import = ReportImport::create([
             'report_id' => $preview['report_id'],
             'user_id' => Auth::id(),
@@ -113,6 +128,11 @@ new #[Title('Importar desde Excel')] class extends Component {
         return ReportImport::query()
             ->with('report')
             ->where('user_id', Auth::id())
+            // Oculta las cargas aplicadas cuyo informe ya no existe (borrado):
+            // el historial refleja el estado actual, no informes eliminados.
+            ->where(fn ($query) => $query
+                ->where('status', '!=', 'applied')
+                ->orWhereHas('report'))
             ->latest()
             ->limit(8)
             ->get();
@@ -238,7 +258,13 @@ new #[Title('Importar desde Excel')] class extends Component {
                                     <td class="px-5 py-4">{{ $preview['contract_number'] }}</td>
                                     <td class="px-5 py-4">{{ $change['label'] }}</td>
                                     <td class="px-5 py-4"><span class="text-[#5F584A]">{{ Str::limit($change['before'], 90) }}</span><span class="mx-2 text-[#C9A043]">→</span>{{ Str::limit($change['after'], 90) }}</td>
-                                    <td class="px-5 py-4"><span class="rounded-full bg-[#F6EEDB] px-2.5 py-1 text-xs font-semibold text-[#7F5C12]">Actualiza</span></td>
+                                    <td class="px-5 py-4">
+                                        @if ($preview['report_action'] === 'create')
+                                            <span class="rounded-full bg-[#E4F1E8] px-2.5 py-1 text-xs font-semibold text-[#2C7549]">Nuevo</span>
+                                        @else
+                                            <span class="rounded-full bg-[#F6EEDB] px-2.5 py-1 text-xs font-semibold text-[#7F5C12]">Actualiza</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                             @foreach ($preview['items'] as $item)

@@ -60,6 +60,11 @@ class ReportImportPreviewer
             ? Report::with(['municipality.department', 'items'])->where('contract_number', $contractNumber)->first()
             : null;
 
+        if (! $report && $contractNumber !== ''
+            && Report::withTrashed()->where('contract_number', $contractNumber)->whereNotNull('deleted_at')->exists()) {
+            $issues[] = $this->issue('warning', 'Informe', null, 'Este contrato tiene un informe eliminado; al aplicar se reemplazará por el del Excel.');
+        }
+
         $reportPayload = $this->reportPayload($source['report'], $report, $issues);
         $reportChanges = $this->changesForModel($report, $reportPayload, self::REPORT_FIELDS, 'report');
 

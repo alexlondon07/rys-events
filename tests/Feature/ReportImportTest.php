@@ -195,6 +195,60 @@ class ReportImportTest extends TestCase
             ->assertOk();
     }
 
+    public function test_reimporting_a_deleted_contract_creates_a_fresh_report(): void
+    {
+        $this->applyExample();
+
+        Report::where('contract_number', 'PS-762026')->firstOrFail()->delete();
+
+        $preview = app(ReportImportPreviewer::class)->preview($this->examplePath());
+
+        $this->assertSame('create', $preview['report_action']);
+        $this->assertTrue(
+            collect($preview['issues'])->contains(fn (array $issue): bool => str_contains($issue['message'], 'informe eliminado')),
+        );
+
+        $result = app(ReportImportApplier::class)->apply($this->makeImport($preview), []);
+
+        $this->assertSame(23, $result['created']);
+        $this->assertDatabaseCount('reports', 1);
+        $this->assertDatabaseHas('reports', ['contract_number' => 'PS-762026', 'deleted_at' => null]);
+        $this->assertDatabaseCount('report_items', 23);
+    }
+
+    public function test_generating_a_preview_discards_the_previous_pending_one(): void
+    {
+        Storage::fake('local');
+
+        $preview = function (): void {
+            Livewire::actingAs($this->user)
+                ->test('pages::reports.import')
+                ->set('file', UploadedFile::fake()->createWithContent('e.xlsx', file_get_contents($this->examplePath())))
+                ->call('generatePreview');
+        };
+
+        $preview();
+        $this->assertSame(1, ReportImport::where('status', 'previewing')->count());
+
+        $preview();
+        $this->assertSame(1, ReportImport::where('status', 'previewing')->count());
+    }
+
+    public function test_the_history_hides_imports_of_deleted_reports(): void
+    {
+        $this->applyExample();
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.import')
+            ->assertSee('ejemplo_guadalupe_PS-762026.xlsx');
+
+        Report::where('contract_number', 'PS-762026')->firstOrFail()->delete();
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.import')
+            ->assertDontSee('ejemplo_guadalupe_PS-762026.xlsx');
+    }
+
     /** @return array<string, mixed> */
     private function applyExample(): array
     {
