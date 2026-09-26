@@ -148,6 +148,7 @@ class ReportIndexTest extends TestCase
     private function makeReport(string $contract, string $status, string $event = 'Evento'): Report
     {
         return Report::create([
+            'user_id' => $this->user->id,
             'contract_number' => $contract,
             'municipality_id' => $this->municipality->id,
             'event_name' => $event,

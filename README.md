@@ -380,17 +380,25 @@ bloquean).
 
 ## Seguridad
 
+- **Registro público desactivado**: las cuentas las crea un administrador en “Usuarios y roles”.
 - **Autenticación** con Fortify: 2FA (TOTP), códigos de recuperación y passkeys; login con
   *rate limiting*.
-- **Autorización**: rutas de administración protegidas por el middleware `admin`; usuarios
-  deshabilitados son expulsados por `EnsureUserIsActive`.
+- **Autorización**: políticas de informe (`ReportPolicy`) — ver/editar para cualquier usuario
+  activo (trabajo en equipo) y **eliminar solo para admin o el creador**; rutas de administración
+  protegidas por el middleware `admin`; usuarios deshabilitados son expulsados por
+  `EnsureUserIsActive`.
 - **Cabeceras de seguridad** (`SecurityHeaders`): `X-Content-Type-Options`, `X-Frame-Options`,
-  `Referrer-Policy`, `Permissions-Policy`.
-- **Subidas validadas**: fotos (JPG/PNG/WEBP/HEIC, ≤ 10 MB), portada (≤ 5 MB) y Excel (≤ 10 MB).
+  `Referrer-Policy`, `Permissions-Policy` y **HSTS** en producción.
+- **Producción**: defina `SESSION_SECURE_COOKIE=true` y `TRUSTED_PROXIES` cuando haya HTTPS detrás
+  de un reverse proxy.
+- **SSRF**: los enlaces de evidencia solo se incrustan si apuntan a hosts públicos (se bloquean
+  IPs privadas/reservadas); si no, se muestra el enlace para abrirlo aparte.
+- **Subidas validadas**: fotos (JPG/PNG/WEBP, ≤ 10 MB), portada (≤ 5 MB) y Excel (≤ 10 MB).
   Los archivos privados viven en el disco `local`; solo logo, firma y fotos son públicos.
 - **PDF**: la vista de impresión se sirve por **URL firmada** (caduca en 15 min) y la generación
-  está limitada por *throttle*.
+  está limitada por *throttle* (igual que la sincronización de Drive).
 - **Sin `{!! !!}`** salvo el QR de 2FA generado por el servidor.
+- `composer audit` y `npm audit` sin vulnerabilidades.
 
 ---
 

@@ -16,6 +16,7 @@ use App\Services\Photos\PhotoOptimizer;
 use App\Services\Text\TextTemplateRenderer;
 use Carbon\CarbonImmutable;
 use Flux\Flux;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -92,6 +93,8 @@ new #[Title('Editar informe')] class extends Component {
 
     public function mount(Report $report): void
     {
+        Gate::authorize('update', $report);
+
         $this->reportId = $report->id;
         $report->load(['municipality.department', 'items.photos']);
 
@@ -1080,18 +1083,22 @@ new #[Title('Editar informe')] class extends Component {
                             <flux:input wire:model.live.debounce.800ms="items.{{ $index }}.evidence_url" label="Carpeta, galería o imagen" type="text" placeholder="https://drive.google.com/drive/folders/… o https://…/foto.jpg" />
                         </div>
                         @php($evidence = \App\Services\Photos\EvidenceLink::make($item['evidence_url'] ?? null))
-                        @if ($evidence?->type() === 'drive_folder')
+                        @if ($evidence?->type() === 'drive_folder' && $evidence->isServerSafe())
                             <div class="mt-4 overflow-hidden rounded-lg border border-[#D3CBBB] bg-white">
                                 <iframe src="{{ $evidence->embedUrl() }}" class="h-80 w-full" loading="lazy"></iframe>
                             </div>
                             <p class="mt-2 text-xs text-[#8A8274]">Si no se ve el contenido, la carpeta no está compartida como “cualquiera con el enlace”. <a href="{{ $evidence->openUrl() }}" target="_blank" rel="noopener" class="font-semibold text-[#7F5C12] underline">Abrir en Drive</a></p>
-                        @elseif ($evidence?->imageUrl())
+                        @elseif ($evidence?->imageUrl() && $evidence->isServerSafe())
                             <img src="{{ $evidence->imageUrl() }}" alt="Vista previa de la evidencia" class="mt-4 max-h-80 w-full rounded-lg border border-[#D3CBBB] object-contain" referrerpolicy="no-referrer">
-                        @elseif ($evidence)
+                        @elseif ($evidence?->embedUrl() && $evidence->isServerSafe())
                             <div class="mt-4 overflow-hidden rounded-lg border border-[#D3CBBB] bg-white">
                                 <iframe src="{{ $evidence->embedUrl() }}" class="h-80 w-full" loading="lazy"></iframe>
                             </div>
                             <p class="mt-2 text-xs text-[#8A8274]">Si el proveedor bloquea la vista incrustada, use el enlace directo. <a href="{{ $evidence->openUrl() }}" target="_blank" rel="noopener" class="font-semibold text-[#7F5C12] underline">Abrir enlace</a></p>
+                        @elseif ($evidence)
+                            <p class="mt-4 rounded-lg border border-[#E8D6A8] bg-[#FBEEDA] px-4 py-3 text-xs text-[#8F520A]">
+                                Por seguridad este enlace no se incrusta. <a href="{{ $evidence->openUrl() }}" target="_blank" rel="noopener" class="font-semibold underline">Abrir enlace</a>
+                            </p>
                         @endif
 
                         @php($driveReady = app(\App\Services\Drive\DriveClient::class)->isConfigured())

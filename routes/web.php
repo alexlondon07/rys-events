@@ -51,6 +51,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('reports.pdf.status');
 
     Route::post('informes/{report}/drive', [ReportController::class, 'syncDrive'])
+        ->middleware('throttle:6,1')
         ->name('reports.drive.sync');
 
     Route::get('informes/{report}/pdf', [ReportController::class, 'downloadPdf'])

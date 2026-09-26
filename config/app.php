@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | IPs/CIDR de los reverse proxies de confianza (Nginx, Cloudflare) o "*"
+    | si el proxy es de confianza. Necesario para detectar HTTPS detrás del
+    | proxy y usar bien las cookies seguras.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

@@ -161,7 +161,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // El registro público está desactivado: las cuentas las crea un
+        // administrador desde “Usuarios y roles”.
         Features::resetPasswords(),
         Features::twoFactorAuthentication([
             'confirm' => true,

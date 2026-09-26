@@ -5,6 +5,7 @@ use App\Models\ReportImport;
 use App\Services\ReportImport\ReportExcelGrid;
 use App\Services\ReportImport\TemplateReader;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -23,8 +24,17 @@ new #[Title('Visor del Excel')] class extends Component {
 
     public string $sheet = 'Informe';
 
+    public function mount(): void
+    {
+        if ($this->reportId) {
+            Gate::authorize('view', Report::findOrFail($this->reportId));
+        }
+    }
+
     public function selectReport(int $reportId): void
     {
+        Gate::authorize('view', Report::findOrFail($reportId));
+
         $this->reportId = $reportId;
         $this->importId = null;
         $this->sheet = 'Informe';

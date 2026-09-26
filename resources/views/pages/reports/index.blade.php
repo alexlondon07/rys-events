@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\ReportItem;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -203,7 +204,10 @@ new #[Title('Informes')] class extends Component {
 
     public function deleteReport(int $id): void
     {
-        Report::query()->findOrFail($id)->delete();
+        $report = Report::query()->findOrFail($id);
+        Gate::authorize('delete', $report);
+
+        $report->delete();
         unset($this->reports, $this->stats);
         Flux::toast(variant: 'success', text: 'Informe eliminado.');
     }

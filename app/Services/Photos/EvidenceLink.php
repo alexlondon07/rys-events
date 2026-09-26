@@ -111,4 +111,39 @@ class EvidenceLink
     {
         return $this->url;
     }
+
+    /**
+     * ¿Es seguro incrustar este enlace desde el servidor (Chrome headless para
+     * el PDF) y en la vista previa?
+     *
+     * Bloquea esquemas que no sean http(s), IPs privadas/reservadas y hosts que
+     * resuelvan a ellas, para evitar SSRF hacia la red interna. Las imágenes en
+     * data URI no salen a la red, así que se permiten.
+     */
+    public function isServerSafe(): bool
+    {
+        if (preg_match('~^data:image/~i', $this->url)) {
+            return true;
+        }
+
+        $scheme = strtolower((string) parse_url($this->url, PHP_URL_SCHEME));
+
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        $host = parse_url($this->url, PHP_URL_HOST);
+
+        if (! is_string($host) || $host === '') {
+            return false;
+        }
+
+        $ip = filter_var($host, FILTER_VALIDATE_IP) !== false ? $host : gethostbyname($host);
+
+        return filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+        ) !== false;
+    }
 }

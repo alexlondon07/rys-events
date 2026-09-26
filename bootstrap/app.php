@@ -7,6 +7,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Env;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,6 +19,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
         ]);
+
+        // Detrás de un reverse proxy (Nginx/Cloudflare) con TLS: defina
+        // TRUSTED_PROXIES con las IPs/CIDR del proxy, o "*" si es de confianza.
+        $trustedProxies = Env::get('TRUSTED_PROXIES');
+
+        if (is_string($trustedProxies) && $trustedProxies !== '') {
+            $middleware->trustProxies(
+                at: $trustedProxies === '*'
+                    ? '*'
+                    : array_map('trim', explode(',', $trustedProxies)),
+            );
+        }
 
         $middleware->appendToGroup('web', EnsureUserIsActive::class);
         $middleware->appendToGroup('web', SecurityHeaders::class);

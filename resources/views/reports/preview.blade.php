@@ -191,13 +191,19 @@
                     <div class="report-content">
                         <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7F5C12]">{{ $item->ref }} · Evidencia ({{ $evidence->label() }})</p>
                         <h2 class="font-display mt-2 text-xl font-bold">{{ $item->artist_name ?: $item->category_label ?: 'Ítem' }}</h2>
-                        @if ($evidence->imageUrl())
+                        @if ($evidence->isServerSafe() && $evidence->imageUrl())
                             <figure class="mt-5 overflow-hidden rounded-lg border border-[#D3CBBB]">
                                 <img src="{{ $evidence->imageUrl() }}" alt="Evidencia de {{ $item->ref }}" class="h-[210mm] w-full object-contain" referrerpolicy="no-referrer">
                             </figure>
-                        @else
+                        @elseif ($evidence->isServerSafe() && $evidence->embedUrl())
                             <div class="mt-5 overflow-hidden rounded-lg border border-[#D3CBBB]">
                                 <iframe src="{{ $evidence->embedUrl() }}" class="h-[210mm] w-full" loading="lazy"></iframe>
+                            </div>
+                        @else
+                            <div class="mt-5 rounded-lg border border-[#D3CBBB] bg-[#FBFAF6] p-5 text-sm text-[#5F584A]">
+                                <p class="font-semibold text-[#17150F]">Evidencia por enlace externo</p>
+                                <p class="mt-1">Por seguridad, este enlace no se incrusta en el informe. Ábralo directamente:</p>
+                                <p class="mt-2 break-all font-mono text-xs text-[#7F5C12]">{{ $evidence->openUrl() }}</p>
                             </div>
                         @endif
                     </div>

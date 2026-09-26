@@ -16,6 +16,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -23,6 +24,8 @@ class ReportController extends Controller
 {
     public function show(Request $request, Report $report): View
     {
+        Gate::authorize('view', $report);
+
         $report = $this->loadReport($report);
         $selectedItem = trim((string) $request->query('item')) ?: null;
 
@@ -38,6 +41,13 @@ class ReportController extends Controller
     }
 
     public function preview(Report $report): View
+    {
+        Gate::authorize('view', $report);
+
+        return $this->renderPreview($report);
+    }
+
+    private function renderPreview(Report $report): View
     {
         $report = $this->loadReport($report);
         $renderer = app(TextTemplateRenderer::class);
@@ -71,7 +81,7 @@ class ReportController extends Controller
      */
     public function pdfRender(Report $report): View
     {
-        return $this->preview($report);
+        return $this->renderPreview($report);
     }
 
     /**
@@ -79,6 +89,8 @@ class ReportController extends Controller
      */
     public function syncDrive(Report $report): RedirectResponse
     {
+        Gate::authorize('update', $report);
+
         if (! app(DriveClient::class)->isConfigured()) {
             return back()->with('error', 'Google Drive no está configurado. Defina la cuenta de servicio para traer las fotos.');
         }
@@ -93,6 +105,8 @@ class ReportController extends Controller
      */
     public function generatePdf(Report $report): RedirectResponse
     {
+        Gate::authorize('update', $report);
+
         if (in_array($report->pdf_status, ['queued', 'processing'], true)) {
             return back()->with('status', 'El PDF ya se está generando.');
         }
@@ -108,6 +122,8 @@ class ReportController extends Controller
      */
     public function pdfStatus(Report $report): JsonResponse
     {
+        Gate::authorize('view', $report);
+
         return response()->json([
             'status' => $report->pdf_status ?: 'idle',
             'ready' => $report->pdf_status === 'ready' && (bool) $report->pdf_path,
@@ -120,6 +136,8 @@ class ReportController extends Controller
      */
     public function downloadPdf(Report $report): StreamedResponse
     {
+        Gate::authorize('view', $report);
+
         abort_unless($report->pdf_path && Storage::disk('local')->exists($report->pdf_path), 404);
 
         return Storage::disk('local')->download($report->pdf_path, "informe-{$report->contract_number}.pdf");
@@ -130,6 +148,8 @@ class ReportController extends Controller
      */
     public function downloadExcel(Report $report, ReportExcelExporter $exporter): StreamedResponse
     {
+        Gate::authorize('view', $report);
+
         $path = $exporter->export($report);
 
         return Storage::disk('local')->download($path, "informe-{$report->contract_number}.xlsx");
@@ -140,6 +160,8 @@ class ReportController extends Controller
      */
     public function downloadImport(Report $report, ReportImport $import): StreamedResponse
     {
+        Gate::authorize('view', $report);
+
         abort_unless($import->report_id === $report->id, 404);
         abort_unless($import->file_path && Storage::disk('local')->exists($import->file_path), 404);
 
