@@ -1,0 +1,48 @@
+# Git
+.git
+.github
+.gitignore
+.gitattributes
+
+# Dependencias (se instalan dentro de la imagen)
+node_modules
+vendor
+
+# Artefactos de build (se generan en la imagen)
+public/build
+public/hot
+public/fonts-manifest.dev.json
+public/storage
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+auth.json
+
+# Estado local
+storage/app/public/*
+storage/app/private/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+tmp
+plantillas/*.pdf
+~$*
+
+# Tests y cachés locales
+tests
+.phpunit.cache
+.phpunit.result.cache
+.phpactor.json
+
+# Editores
+.idea
+.vscode
+.fleet
+.nova
+.zed
+
+# Recursos de diseño
+recursos-dev

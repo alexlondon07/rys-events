@@ -304,8 +304,8 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 
 ### Fase 5: QA y entrega
 - [ ] Cargar el informe de Guadalupe completo como prueba de aceptación
-- [ ] Tests con Pest de los flujos críticos
-- [ ] Despliegue (VPS/Forge o el hosting del cliente), colas con Supervisor y Chromium instalado en el servidor
+- [x] Tests de los flujos críticos (PHPUnit; 138 pruebas)
+- [x] Plantilla de despliegue con Docker (Nginx + PHP-FPM + Chromium, worker y scheduler) y GitHub Actions (CI + build de imagen); el despliegue real en Contabo queda pendiente
 - [ ] Sesión de capacitación y manual corto
 
 ---

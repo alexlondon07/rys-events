@@ -17,6 +17,7 @@ identidad de la marca (negro y dorado).
 - [Instalación](#instalación)
 - [Configuración](#configuración)
 - [Comandos útiles](#comandos-útiles)
+- [Docker y despliegue](#docker-y-despliegue)
 - [Funcionalidades](#funcionalidades)
 - [Rutas principales](#rutas-principales)
 - [Roles y permisos](#roles-y-permisos)
@@ -162,6 +163,43 @@ composer types:check           # PHPStan (larastan)
 php artisan test               # suite completa
 composer test                  # lint:check + types:check + tests
 ```
+
+---
+
+## Docker y despliegue
+
+El proyecto incluye una imagen lista para el servidor: **Nginx + PHP-FPM** en un solo
+contenedor (con **Node/Chromium** para el PDF) y, en `docker-compose.yml`, el **worker**
+de colas, el **scheduler** y **MySQL**.
+
+Archivos:
+- `Dockerfile` — multi-stage: assets con Node y runtime con PHP 8.3 + Nginx + Chromium.
+- `docker-compose.yml` — `app`, `worker`, `scheduler` y `db`.
+- `docker/` — configuración de Nginx, PHP, supervisord y `entrypoint.sh`.
+- `.github/workflows/ci.yml` — Pint, PHPStan y tests en cada push/PR.
+- `.github/workflows/docker.yml` — construye y publica la imagen en `ghcr.io`.
+
+Uso (local o servidor):
+
+```bash
+cp .env.example .env     # ajustar APP_URL, APP_KEY y DB_*
+docker compose build
+docker compose up -d
+docker compose logs -f app
+```
+
+La app queda en `http://localhost:${APP_PORT:-8080}`. El servicio `app` corre las
+migraciones al arrancar (`RUN_MIGRATIONS=true`), el `worker` procesa el PDF y la
+sincronización de Drive, y el `scheduler` queda listo para tareas programadas.
+
+Para el servidor Contabo hay dos caminos:
+1. Publicar la imagen desde GitHub Actions en `ghcr.io/alexlondon07/rys-events:latest`
+   y en el servidor `docker pull` + `docker compose up -d`.
+2. Construir en el servidor con `docker compose build` (sin registro).
+
+> `storage/app` va en un volumen (`storage`) para conservar fotos y PDFs entre
+> despliegues. El `db` de Compose sirve para desarrollo o servidores pequeños; en
+> producción puede apuntar a un MySQL externo cambiando `DB_HOST` en `.env`.
 
 ---
 

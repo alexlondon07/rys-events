@@ -1,0 +1,67 @@
+# Plantilla de despliegue con Docker (servidor con MySQL propio).
+#
+# La app corre con Nginx + PHP-FPM en un contenedor; el worker de colas y el
+# scheduler usan la misma imagen con otro comando.
+#
+# Uso en el servidor:
+#   cp .env.example .env        # ajustar APP_KEY, APP_URL y DB_* (tu MySQL)
+#   docker compose build        # o docker pull <imagen> si la publicas
+#   docker compose up -d
+#
+# Nota: no se incluye MySQL porque ya tienes uno. Apunta DB_HOST/DB_PORT/
+# DB_DATABASE/DB_USERNAME/DB_PASSWORD a tu servidor de base de datos.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rys-events:latest
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LARAVEL_PDF_CHROME_PATH: /usr/bin/chromium
+      RUN_MIGRATIONS: "true"
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - storage:/var/www/html/storage/app
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/login"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    image: rys-events:latest
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LARAVEL_PDF_CHROME_PATH: /usr/bin/chromium
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=1", "--timeout=300", "--max-time=3600"]
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      app:
+        condition: service_healthy
+
+  scheduler:
+    image: rys-events:latest
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  storage:
