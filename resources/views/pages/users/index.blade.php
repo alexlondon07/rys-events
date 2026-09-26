@@ -30,6 +30,12 @@ new #[Title('Usuarios')] class extends Component {
 
     public string $editEmail = '';
 
+    public ?int $resetId = null;
+
+    public string $resetPassword = '';
+
+    public string $resetPasswordConfirmation = '';
+
     #[Computed]
     public function users()
     {
@@ -226,6 +232,41 @@ new #[Title('Usuarios')] class extends Component {
 
         Flux::toast(variant: 'success', text: 'Usuario eliminado.');
     }
+
+    public function startPasswordReset(int $userId): void
+    {
+        User::query()->findOrFail($userId);
+
+        $this->resetId = $userId;
+        $this->reset('resetPassword', 'resetPasswordConfirmation');
+        $this->resetValidation();
+    }
+
+    public function resetPassword(): void
+    {
+        $validated = $this->validate([
+            'resetPassword' => ['required', 'string', 'min:8', 'same:resetPasswordConfirmation'],
+        ], [
+            'resetPassword.required' => 'Escriba la nueva contraseña.',
+            'resetPassword.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'resetPassword.same' => 'Las contraseñas no coinciden.',
+        ]);
+
+        $user = User::query()->findOrFail($this->resetId);
+        $user->password = $validated['resetPassword'];
+        $user->save();
+
+        $this->reset('resetId', 'resetPassword', 'resetPasswordConfirmation');
+        $this->resetValidation();
+
+        Flux::toast(variant: 'success', text: 'Contraseña actualizada.');
+    }
+
+    #[Computed]
+    public function resetTarget(): ?User
+    {
+        return $this->resetId !== null ? User::query()->find($this->resetId) : null;
+    }
 }; ?>
 
 <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 py-4">
@@ -345,6 +386,10 @@ new #[Title('Usuarios')] class extends Component {
                             <td class="px-4 py-4 text-[#5F584A]">{{ $user->created_at?->format('d/m/Y') }}</td>
                             <td class="px-4 py-4 text-right">
                                 <div class="flex items-center justify-end gap-1">
+                                    <flux:button size="sm" variant="ghost" icon="key" wire:click="startPasswordReset({{ $user->id }})" x-on:click="$dispatch('modal-show', { name: 'reset-password' })">
+                                        Clave
+                                    </flux:button>
+
                                     <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="startEdit({{ $user->id }})">
                                         Editar
                                     </flux:button>
@@ -377,4 +422,28 @@ new #[Title('Usuarios')] class extends Component {
             </table>
         </div>
     </section>
+
+    <flux:modal name="reset-password" class="max-w-md">
+        <form wire:submit="resetPassword" class="space-y-6">
+            <div>
+                <flux:heading size="lg">Restablecer contraseña</flux:heading>
+                <flux:subheading>
+                    Nueva contraseña para {{ $this->resetTarget?->name ?? 'el usuario' }}. No afecta su verificación en dos pasos.
+                </flux:subheading>
+            </div>
+
+            <flux:input wire:model="resetPassword" type="password" label="Nueva contraseña" viewable autocomplete="new-password" />
+            <flux:input wire:model="resetPasswordConfirmation" type="password" label="Confirmar contraseña" viewable autocomplete="new-password" />
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button type="button" variant="ghost">Cancelar</flux:button>
+                </flux:modal.close>
+
+                <flux:modal.close>
+                    <flux:button type="submit" variant="primary" icon="check">Guardar</flux:button>
+                </flux:modal.close>
+            </div>
+        </form>
+    </flux:modal>
 </div>

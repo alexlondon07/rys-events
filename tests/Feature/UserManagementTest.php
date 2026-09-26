@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -205,5 +206,33 @@ class UserManagementTest extends TestCase
             ->assertRedirect(route('login'));
 
         $this->assertGuest();
+    }
+
+    public function test_an_admin_can_reset_a_user_password_from_the_panel(): void
+    {
+        $admin = User::factory()->admin()->withTwoFactor()->create();
+        $user = User::factory()->create();
+
+        Livewire::actingAs($admin)
+            ->test('pages::users.index')
+            ->call('startPasswordReset', $user->id)
+            ->set('resetPassword', 'NuevaClave123')
+            ->set('resetPasswordConfirmation', 'NuevaClave123')
+            ->call('resetPassword')
+            ->assertHasNoErrors();
+
+        $this->assertTrue(Hash::check('NuevaClave123', $user->fresh()->password));
+    }
+
+    public function test_the_console_command_resets_a_password(): void
+    {
+        $user = User::factory()->create(['email' => 'admin@rys.test']);
+
+        $this->artisan('user:password', [
+            'email' => 'admin@rys.test',
+            '--password' => 'NuevaClave123',
+        ])->assertExitCode(0);
+
+        $this->assertTrue(Hash::check('NuevaClave123', $user->fresh()->password));
     }
 }

@@ -156,6 +156,10 @@ Notas:
     `MAIL_PASSWORD` y `MAIL_ENCRYPTION`, o un proveedor (Resend, Postmark, Mailgun).
   - Ajuste `MAIL_FROM_ADDRESS` a un correo válido del dominio y verifique que `APP_URL`
     apunte a la URL pública (el enlace del correo se arma con ella).
+  - **Sin proveedor de correo**: un administrador puede restablecer la contraseña desde
+    **Usuarios y roles › Clave**, o por consola con `php artisan user:password {email}`
+    (útil si el único admin quedó bloqueado). Recuerde: el 2FA es el segundo factor, siempre
+    se necesita la contraseña; los códigos de recuperación del 2FA no la reemplazan.
 
 ---
 
