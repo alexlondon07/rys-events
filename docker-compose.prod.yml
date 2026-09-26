@@ -1,0 +1,69 @@
+name: rys-events
+
+services:
+  app:
+    image: ${RYS_IMAGE:?Set RYS_IMAGE to an immutable GHCR SHA tag}
+    container_name: rys-events-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      RUN_MIGRATIONS: 'false'
+      LARAVEL_PDF_CHROME_PATH: /usr/bin/chromium
+    volumes:
+      - storage:/var/www/html/storage/app
+    networks:
+      - proxy-net
+      - db-net
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1/up']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  worker:
+    image: ${RYS_IMAGE:?Set RYS_IMAGE to an immutable GHCR SHA tag}
+    container_name: rys-events-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      LARAVEL_PDF_CHROME_PATH: /usr/bin/chromium
+    command: ['php', 'artisan', 'queue:work', '--sleep=3', '--tries=1', '--timeout=300', '--max-time=3600']
+    volumes:
+      - storage:/var/www/html/storage/app
+    networks:
+      - db-net
+    depends_on:
+      app:
+        condition: service_healthy
+
+  scheduler:
+    image: ${RYS_IMAGE:?Set RYS_IMAGE to an immutable GHCR SHA tag}
+    container_name: rys-events-scheduler
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      LARAVEL_PDF_CHROME_PATH: /usr/bin/chromium
+    command: ['php', 'artisan', 'schedule:work']
+    volumes:
+      - storage:/var/www/html/storage/app
+    networks:
+      - db-net
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  storage:
+
+networks:
+  proxy-net:
+    external: true
+  db-net:
+    external: true

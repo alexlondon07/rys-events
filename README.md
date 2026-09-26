@@ -169,16 +169,20 @@ composer test                  # lint:check + types:check + tests
 
 ## Docker y despliegue
 
-El proyecto incluye una imagen lista para el servidor: **Nginx + PHP-FPM** en un solo
-contenedor (con **Node/Chromium** para el PDF) y, en `docker-compose.yml`, el **worker**
-de colas, el **scheduler** y **MySQL**.
+El proyecto incluye una imagen con **Nginx + PHP-FPM + Node/Chromium** para web y PDF.
+`docker-compose.yml` sirve para desarrollo. `docker-compose.prod.yml` usa la imagen
+publicada, un volumen propio y las redes Docker existentes de Contabo (`proxy-net` y
+`db-net`). MySQL permanece en su contenedor actual; no se crea otra instancia.
 
 Archivos:
 - `Dockerfile` — multi-stage: assets con Node y runtime con PHP 8.3 + Nginx + Chromium.
-- `docker-compose.yml` — `app`, `worker`, `scheduler` y `db`.
+- `docker-compose.yml` — `app`, `worker` y `scheduler` para desarrollo.
+- `docker-compose.prod.yml` — servicios aislados de producción, sin puertos públicos.
 - `docker/` — configuración de Nginx, PHP, supervisord y `entrypoint.sh`.
-- `.github/workflows/ci.yml` — Pint, PHPStan y tests en cada push/PR.
-- `.github/workflows/docker.yml` — construye y publica la imagen en `ghcr.io`.
+- `.github/workflows/deploy.yml` — Pint, PHPStan y tests; si pasan en `main`,
+  publica la imagen con el SHA del commit y despliega por SSH.
+- `scripts/deploy-production.sh` — valida el SHA, respalda `alex_rys_db`, migra,
+  actualiza solo los contenedores RYS y comprueba salud y conexión a la base.
 
 Uso (local o servidor):
 
@@ -189,18 +193,22 @@ docker compose up -d
 docker compose logs -f app
 ```
 
-La app queda en `http://localhost:${APP_PORT:-8080}`. El servicio `app` corre las
-migraciones al arrancar (`RUN_MIGRATIONS=true`), el `worker` procesa el PDF y la
-sincronización de Drive, y el `scheduler` queda listo para tareas programadas.
+En Contabo, el proyecto vive en `/opt/stack/apps/rys-events`. Su `.env` privado debe
+contener `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://ryseventos.alexlondon07.com`,
+`DB_HOST=mysql`, `DB_DATABASE=alex_rys_db`, una `APP_KEY` única y credenciales de un
+usuario MySQL limitado a esa base. Use `SESSION_SECURE_COOKIE=true` detrás del proxy.
+El volumen `rys-events_storage` conserva fotos y PDFs. Inclúyalo en los backups del VPS.
 
-Para el servidor Contabo hay dos caminos:
-1. Publicar la imagen desde GitHub Actions en `ghcr.io/alexlondon07/rys-events:latest`
-   y en el servidor `docker pull` + `docker compose up -d`.
-2. Construir en el servidor con `docker compose build` (sin registro).
+El despliegue automático se activa con la variable de repositorio `RYS_DEPLOY_ENABLED=true`
+solo después de preparar el servidor. Requiere los secretos `RYS_DEPLOY_KEY` (llave SSH
+dedicada y restringida) y `RYS_KNOWN_HOSTS` (clave pública de host fijada), además de
+la imagen GHCR accesible desde Contabo. Cada release se identifica con el SHA, no con
+`latest`. El script nunca ejecuta `docker compose down` ni elimina volúmenes. Si la
+nueva app falla el health check, restaura los contenedores de la imagen anterior; el
+respaldo de MySQL queda disponible para una restauración evaluada por separado.
 
-> `storage/app` va en un volumen (`storage`) para conservar fotos y PDFs entre
-> despliegues. El `db` de Compose sirve para desarrollo o servidores pequeños; en
-> producción puede apuntar a un MySQL externo cambiando `DB_HOST` en `.env`.
+En producción no se crea un administrador con la contraseña de desarrollo. Provisione
+el primer usuario administrador con una contraseña propia antes de abrir el dominio.
 
 ---
 

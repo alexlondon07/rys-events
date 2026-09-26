@@ -1,0 +1,94 @@
+name: CI and production deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: rys-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  test:
+    name: Lint, types and tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, gd, zip, intl, bcmath, exif, dom, xmlreader, fileinfo
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: |
+          cp .env.example .env
+          php artisan key:generate
+      - run: npm ci && npm run build
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+      - run: vendor/bin/pint --test
+      - run: vendor/bin/phpstan analyse --memory-limit=1G
+      - run: php artisan test
+
+  build:
+    name: Build and publish immutable image
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Contabo
+    if: github.event_name != 'pull_request' && vars.RYS_DEPLOY_ENABLED == 'true'
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - name: Install dedicated SSH key and pinned host key
+        env:
+          RYS_DEPLOY_KEY: ${{ secrets.RYS_DEPLOY_KEY }}
+          RYS_KNOWN_HOSTS: ${{ secrets.RYS_KNOWN_HOSTS }}
+        run: |
+          test -n "$RYS_DEPLOY_KEY"
+          test -n "$RYS_KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$RYS_DEPLOY_KEY" > "$HOME/.ssh/rys_deploy"
+          printf '%s\n' "$RYS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/rys_deploy" "$HOME/.ssh/known_hosts"
+      - name: Deploy exact commit
+        run: >-
+          ssh -T -i "$HOME/.ssh/rys_deploy" -o BatchMode=yes
+          -o StrictHostKeyChecking=yes -o ConnectTimeout=10
+          deploy@84.247.177.157
+          "deploy ${{ github.sha }}"

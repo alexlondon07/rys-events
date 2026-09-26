@@ -16,18 +16,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $admin = User::firstOrNew(['email' => 'alexlondon07@gmail.com']);
+        // Production accounts are provisioned separately: never seed a known password.
+        if (! app()->isProduction()) {
+            $admin = User::firstOrNew(['email' => 'alexlondon07@gmail.com']);
 
-        $admin->name ??= 'Alexander Andrés Londoño Espejo';
-        $admin->role = UserRole::Admin;
-        $admin->active = true;
+            $admin->name ??= 'Alexander Andrés Londoño Espejo';
+            $admin->role = UserRole::Admin;
+            $admin->active = true;
 
-        if (! $admin->exists) {
-            $admin->email_verified_at = now();
-            $admin->password = 'password';
+            if (! $admin->exists) {
+                $admin->email_verified_at = now();
+                $admin->password = 'password';
+            }
+
+            $admin->save();
         }
-
-        $admin->save();
 
         $this->call(LibrarySeeder::class);
     }

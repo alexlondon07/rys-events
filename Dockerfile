@@ -1,25 +1,9 @@
 # syntax=docker/dockerfile:1
 
 ########################################
-# 1) Assets (Vite / Tailwind)
+# 1) PHP dependencies and runtime tools
 ########################################
-FROM node:22-bookworm-slim AS assets
-
-WORKDIR /app
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY vite.config.js ./
-COPY resources ./resources
-COPY public ./public
-RUN npm run build
-
-########################################
-# 2) Runtime: PHP-FPM + Nginx + Node/Chromium
-########################################
-FROM php:8.3-fpm-bookworm AS runtime
+FROM php:8.3-fpm-bookworm AS php-base
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LARAVEL_PDF_CHROME_PATH=/usr/bin/chromium \
@@ -38,8 +22,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pdo_mysql mbstring exif pcntl bcmath gd zip intl opcache xml simplexml dom xmlreader \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
-    && npm install -g puppeteer@25 \
-    && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
@@ -54,7 +36,6 @@ RUN chmod +x /usr/local/bin/entrypoint \
 WORKDIR /var/www/html
 
 COPY . .
-COPY --from=assets /app/public/build ./public/build
 
 RUN mkdir -p \
         storage/app/public storage/app/private \
@@ -62,6 +43,31 @@ RUN mkdir -p \
         storage/logs bootstrap/cache \
     && composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && chown -R www-data:www-data storage bootstrap/cache
+
+########################################
+# 2) Assets need vendor/livewire/flux/dist/flux.css
+########################################
+FROM node:22-bookworm-slim AS assets
+
+WORKDIR /app
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY vite.config.js ./
+COPY resources ./resources
+COPY public ./public
+COPY --from=php-base /var/www/html/vendor ./vendor
+RUN npm run build
+
+########################################
+# 3) Web, queue worker and scheduler share one image
+########################################
+FROM php-base AS runtime
+
+COPY --from=assets /app/public/build ./public/build
+COPY --from=assets /app/node_modules ./node_modules
 
 EXPOSE 80
 
