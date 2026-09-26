@@ -148,6 +148,14 @@ Notas:
   como lector. El botón “Sincronizar Drive” (por ítem y por informe) trae las fotos nuevas al
   storage propio y las optimiza; nunca borra nada en Drive y las que no tienen permiso quedan
   marcadas con el error.
+- **Correo y recuperar contraseña**: el flujo “¿Olvidó su contraseña?” ya viene con Fortify.
+  Para que el correo se envíe de verdad, configure `MAIL_*` en `.env`:
+  - **Local (por defecto)**: `MAIL_MAILER=log` escribe el correo en `storage/logs/laravel.log`
+    (útil para copiar el enlace de restablecimiento sin enviar nada).
+  - **Real**: `MAIL_MAILER=smtp` con `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`,
+    `MAIL_PASSWORD` y `MAIL_ENCRYPTION`, o un proveedor (Resend, Postmark, Mailgun).
+  - Ajuste `MAIL_FROM_ADDRESS` a un correo válido del dominio y verifique que `APP_URL`
+    apunte a la URL pública (el enlace del correo se arma con ella).
 
 ---
 
