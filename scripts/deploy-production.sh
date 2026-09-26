@@ -24,8 +24,8 @@ test -f "$COMPOSE"
 sha="$1"
 git fetch --quiet origin main
 if [[ "$(git rev-parse origin/main)" != "$sha" ]]; then
-    echo 'Refusing to deploy a commit that is not the current origin/main.' >&2
-    exit 1
+    echo 'A newer main commit exists; skipping this superseded image.'
+    exit 0
 fi
 
 previous_image=''
@@ -52,7 +52,9 @@ unset MYSQL_ROOT_PASSWORD
 
 docker compose -f "$COMPOSE" run --rm --no-deps app php artisan migrate --force
 
-if ! docker compose -f "$COMPOSE" up -d --wait; then
+if ! docker compose -f "$COMPOSE" up -d --wait \
+    || ! docker compose -f "$COMPOSE" exec -T app php artisan migrate:status >/dev/null \
+    || ! docker compose -f "$COMPOSE" exec -T app curl -fsS http://127.0.0.1/login >/dev/null; then
     if [[ -n "$previous_image" ]]; then
         echo 'New containers failed health checks; restoring the previous image.' >&2
         RYS_IMAGE="$previous_image" docker compose -f "$COMPOSE" up -d --wait || true
@@ -61,8 +63,6 @@ if ! docker compose -f "$COMPOSE" up -d --wait; then
     exit 1
 fi
 
-docker compose -f "$COMPOSE" exec -T app php artisan migrate:status >/dev/null
-docker compose -f "$COMPOSE" exec -T app curl -fsS http://127.0.0.1/login >/dev/null
 printf '%s\n' "$RYS_IMAGE" > .deployed-image
 echo "RYS deployed: $sha"
 echo "Database backup: $backup"

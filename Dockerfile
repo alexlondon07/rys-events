@@ -20,10 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql mbstring exif pcntl bcmath gd zip intl opcache \
-    && docker-php-ext-install xml \
-    && docker-php-ext-install dom \
-    && docker-php-ext-install simplexml \
-    && docker-php-ext-install xmlreader \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
