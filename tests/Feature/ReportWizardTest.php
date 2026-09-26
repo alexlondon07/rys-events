@@ -316,6 +316,11 @@ class ReportWizardTest extends TestCase
         $this->assertSame(2, ReportItem::where('ref', 'ART-01')->firstOrFail()->photos()->count());
     }
 
+    public function test_default_photo_limit_is_seven_per_item(): void
+    {
+        $this->assertSame(7, config('reports.photos.max_per_item'));
+    }
+
     public function test_heic_photo_uploads_are_rejected(): void
     {
         Storage::fake('public');

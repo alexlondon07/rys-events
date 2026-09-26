@@ -254,7 +254,7 @@ new #[Title('Editar informe')] class extends Component {
         }
 
         $item = $this->itemAt($index);
-        $limit = max(1, (int) config('reports.photos.max_per_item', 60));
+        $limit = max(1, (int) config('reports.photos.max_per_item', 7));
         $maxSize = max(1, (int) config('reports.photos.max_size_kb', 10240));
         $mimes = implode(',', (array) config('reports.photos.mimes', ['jpg', 'jpeg', 'png', 'webp']));
         $remaining = max(0, $limit - $item->photos()->count());
@@ -1038,8 +1038,8 @@ new #[Title('Editar informe')] class extends Component {
                 <div class="mt-6 border-t border-[#EDE9E0] pt-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                            <p class="text-sm font-semibold text-[#17150F]">Evidencia fotográfica <span class="font-normal text-[#5F584A]">({{ count($item['photos']) }})</span></p>
-                            <p class="mt-1 text-xs text-[#5F584A]">JPG, PNG o WEBP · máx. {{ round((int) config('reports.photos.max_size_kb', 10240) / 1024) }} MB por foto · hasta {{ (int) config('reports.photos.max_per_item', 60) }} por ítem.</p>
+                            <p class="text-sm font-semibold text-[#17150F]">Evidencia fotográfica <span class="font-normal text-[#5F584A]">({{ count($item['photos']) }} de {{ (int) config('reports.photos.max_per_item', 7) }})</span></p>
+                            <p class="mt-1 text-xs text-[#5F584A]">JPG, PNG o WEBP · máx. {{ round((int) config('reports.photos.max_size_kb', 10240) / 1024) }} MB por foto · hasta {{ (int) config('reports.photos.max_per_item', 7) }} por ítem.</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <input wire:model="uploads.{{ $index }}" type="file" accept="image/jpeg,image/png,image/webp" multiple class="block text-sm text-[#5F584A] file:me-3 file:rounded-md file:border-0 file:bg-[#17150F] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white" />

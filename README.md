@@ -135,7 +135,7 @@ Notas:
 - El **PDF se genera en cola** (`QUEUE_CONNECTION=database`). En local hay que tener un
   worker corriendo: `php artisan queue:work`. El informe muestra el estado (en cola,
   generando, listo o con error) y habilita la descarga al terminar.
-- Los **límites de fotos** (máximo por ítem y tamaño) y la **optimización** (lado máximo
+- Los **límites de fotos** (máximo por ítem, por defecto **7**, y tamaño) y la **optimización** (lado máximo
   `1500 px` y calidad JPEG `70`, para que un informe de ~150 fotos quede bajo 20 MB) se
   ajustan en `config/reports.php` o con las variables `REPORTS_PHOTOS_*`.
   Los formatos aceptados son JPG, PNG y WEBP; los HEIC del iPhone se rechazan con un aviso.
