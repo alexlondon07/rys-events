@@ -42,6 +42,7 @@ MVP en desarrollo activo. Lo construido está probado (`pint`, `phpstan`, `php a
 | Listado de informes (paginación, búsqueda, filtros, orden, estadísticas) | ✅ |
 | Importación desde Excel por partes con vista previa y conflictos | ✅ |
 | Visor del Excel por informe (rejilla real por hoja, estado por fila y guía de columnas) | ✅ |
+| Manual de uso en la app (Markdown, con índice y buscador) | ✅ |
 | Asistente de edición de 6 pasos con autoguardado y checklist | ✅ |
 | Biblioteca: plantillas de texto y catálogo de ítems | ✅ |
 | Evidencia fotográfica: subida local (optimizada), enlace de evidencia (Drive, imagen u otro), límites y collage | ✅ |

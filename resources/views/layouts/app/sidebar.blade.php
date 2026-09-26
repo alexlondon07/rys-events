@@ -40,6 +40,12 @@
                     </flux:sidebar.item>
                 </flux:sidebar.group>
 
+                <flux:sidebar.group heading="Ayuda" class="grid">
+                    <flux:sidebar.item icon="book-open" :href="route('manual')" :current="request()->routeIs('manual')" wire:navigate>
+                        Manual de uso
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+
                 @if (auth()->user()->isAdmin())
                     <flux:sidebar.group heading="Administración" class="grid">
                         <flux:sidebar.item icon="building-office-2" :href="route('company.edit')" :current="request()->routeIs('company.*')" wire:navigate>

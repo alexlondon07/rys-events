@@ -34,6 +34,9 @@ Route::middleware(['auth', 'require-2fa'])->group(function () {
     Route::livewire('biblioteca/catalogo', 'pages::catalog.index')
         ->name('catalog.index');
 
+    Route::livewire('manual', 'pages::manual')
+        ->name('manual');
+
     Route::get('informes/{report}', [ReportController::class, 'show'])
         ->name('reports.show');
 
