@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use Carbon\CarbonInterface;
+use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,11 +26,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'period_end', 'subject', 'contract_object', 'event_name', 'event_start',
     'event_end', 'cover_url', 'cover_path', 'cover_template',
     'introduction', 'event_description', 'conclusion', 'signer_name',
-    'status', 'current_step', 'pdf_path', 'pdf_generated_at', 'updated_in_app_at',
-    'imported_at',
+    'status', 'current_step', 'pdf_path', 'pdf_generated_at', 'pdf_status', 'pdf_error',
+    'updated_in_app_at', 'imported_at',
 ])]
 class Report extends Model
 {
+    /** @use HasFactory<ReportFactory> */
+    use HasFactory;
+
     use SoftDeletes;
 
     protected function casts(): array

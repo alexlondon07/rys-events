@@ -2,29 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\GenerateReportPdf;
+use App\Jobs\SyncReportDrivePhotos;
 use App\Models\CompanySetting;
 use App\Models\Report;
 use App\Models\ReportImport;
 use App\Models\ReportItem;
+use App\Services\Drive\DriveClient;
 use App\Services\Photos\CollageBuilder;
 use App\Services\Reports\ReportExcelExporter;
-use App\Services\Reports\ReportPdfGenerator;
 use App\Services\Text\TextTemplateRenderer;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function show(Report $report): View
+    public function show(Request $request, Report $report): View
     {
         $report = $this->loadReport($report);
+        $selectedItem = trim((string) $request->query('item')) ?: null;
+
+        $activity = fn () => $report->activityLogs()
+            ->when($selectedItem, fn ($query) => $query->where('item_ref', $selectedItem));
 
         return view('reports.show', [
             'report' => $report,
-            'recentActivity' => $report->activityLogs()->with('user')->latest('id')->limit(8)->get(),
-            'activityCount' => $report->activityLogs()->count(),
+            'recentActivity' => $activity()->with('user')->latest('id')->limit(12)->get(),
+            'activityCount' => $activity()->count(),
+            'selectedItem' => $selectedItem,
         ]);
     }
 
@@ -66,19 +75,44 @@ class ReportController extends Controller
     }
 
     /**
-     * Genera el PDF del informe y lo guarda en el storage.
+     * Encola la sincronización de fotos de Drive de todos los ítems.
      */
-    public function generatePdf(Report $report, ReportPdfGenerator $generator): RedirectResponse
+    public function syncDrive(Report $report): RedirectResponse
     {
-        try {
-            $generator->generate($report);
-        } catch (\Throwable $exception) {
-            report($exception);
-
-            return back()->with('error', 'No se pudo generar el PDF. Verifique que Chrome esté disponible e intente de nuevo.');
+        if (! app(DriveClient::class)->isConfigured()) {
+            return back()->with('error', 'Google Drive no está configurado. Defina la cuenta de servicio para traer las fotos.');
         }
 
-        return back()->with('status', 'PDF generado correctamente.');
+        SyncReportDrivePhotos::dispatch($report);
+
+        return back()->with('status', 'Sincronización de fotos de Drive en cola. Aparecerán al terminar.');
+    }
+
+    /**
+     * Encola la generación del PDF del informe.
+     */
+    public function generatePdf(Report $report): RedirectResponse
+    {
+        if (in_array($report->pdf_status, ['queued', 'processing'], true)) {
+            return back()->with('status', 'El PDF ya se está generando.');
+        }
+
+        $report->update(['pdf_status' => 'queued', 'pdf_error' => null]);
+        GenerateReportPdf::dispatch($report);
+
+        return back()->with('status', 'El PDF se está generando en segundo plano. La descarga se habilita al terminar.');
+    }
+
+    /**
+     * Estado de la generación del PDF, consultado por la pantalla del informe.
+     */
+    public function pdfStatus(Report $report): JsonResponse
+    {
+        return response()->json([
+            'status' => $report->pdf_status ?: 'idle',
+            'ready' => $report->pdf_status === 'ready' && (bool) $report->pdf_path,
+            'error' => $report->pdf_error,
+        ]);
     }
 
     /**

@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\GenerateReportPdf;
 use App\Models\CompanySetting;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\Reports\ReportPdfGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -86,5 +89,75 @@ class ReportPdfTest extends TestCase
         $this->get($signed)
             ->assertOk()
             ->assertDontSee('text-[#17150F] report-is-draft', false);
+    }
+
+    public function test_generating_the_pdf_queues_a_job(): void
+    {
+        Queue::fake();
+
+        $this->actingAs($this->user)
+            ->from(route('reports.show', $this->report))
+            ->post(route('reports.pdf.generate', $this->report))
+            ->assertRedirect(route('reports.show', $this->report));
+
+        Queue::assertPushed(GenerateReportPdf::class);
+        $this->assertSame('queued', $this->report->fresh()->pdf_status);
+    }
+
+    public function test_the_pdf_is_not_queued_twice_while_generating(): void
+    {
+        Queue::fake();
+        $this->report->update(['pdf_status' => 'processing']);
+
+        $this->actingAs($this->user)
+            ->from(route('reports.show', $this->report))
+            ->post(route('reports.pdf.generate', $this->report));
+
+        Queue::assertNothingPushed();
+        $this->assertSame('processing', $this->report->fresh()->pdf_status);
+    }
+
+    public function test_the_job_marks_the_report_as_ready(): void
+    {
+        Storage::fake('local');
+
+        $generator = \Mockery::mock(ReportPdfGenerator::class);
+        $generator->shouldReceive('generate')->once()->andReturn('reports/1/informe.pdf');
+
+        (new GenerateReportPdf($this->report))->handle($generator);
+
+        $this->report->refresh();
+        $this->assertSame('ready', $this->report->pdf_status);
+        $this->assertSame('reports/1/informe.pdf', $this->report->pdf_path);
+        $this->assertNull($this->report->pdf_error);
+    }
+
+    public function test_the_job_marks_the_report_as_failed(): void
+    {
+        $generator = \Mockery::mock(ReportPdfGenerator::class);
+        $generator->shouldReceive('generate')->once()->andThrow(new \RuntimeException('No se encontró Chrome'));
+
+        (new GenerateReportPdf($this->report))->handle($generator);
+
+        $this->report->refresh();
+        $this->assertSame('failed', $this->report->pdf_status);
+        $this->assertSame('No se encontró Chrome', $this->report->pdf_error);
+    }
+
+    public function test_the_status_endpoint_reports_the_generation_state(): void
+    {
+        $this->report->update(['pdf_status' => 'processing']);
+
+        $this->actingAs($this->user)
+            ->getJson(route('reports.pdf.status', $this->report))
+            ->assertOk()
+            ->assertJson(['status' => 'processing', 'ready' => false]);
+
+        $this->report->update(['pdf_status' => 'ready', 'pdf_path' => 'reports/1/informe.pdf']);
+
+        $this->actingAs($this->user)
+            ->getJson(route('reports.pdf.status', $this->report))
+            ->assertOk()
+            ->assertJson(['status' => 'ready', 'ready' => true]);
     }
 }

@@ -44,8 +44,9 @@ MVP en desarrollo activo. Lo construido está probado (`pint`, `phpstan`, `php a
 | Asistente de edición de 6 pasos con autoguardado y checklist | ✅ |
 | Biblioteca: plantillas de texto y catálogo de ítems | ✅ |
 | Evidencia fotográfica: subida local (optimizada), enlace de evidencia (Drive, imagen u otro), límites y collage | ✅ |
+| Sincronización de fotos de Google Drive (las copia al storage y las optimiza) | ✅ |
 | Trazabilidad (bitácora de cambios por campo) | ✅ |
-| Generación de PDF con la plantilla oficial (Chrome headless) | ✅ |
+| Generación de PDF con la plantilla oficial (Chrome headless, en cola) | ✅ |
 | Exportar el informe a Excel (misma plantilla, para completar fuera) | ✅ |
 
 ---
@@ -127,13 +128,22 @@ Notas:
 - El **tema es claro fijo** (la identidad de marca no tiene modo oscuro).
 - Para el PDF, configure `LARAVEL_PDF_CHROME_PATH` con la ruta a Chrome/Chromium
   (en macOS: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`).
-- Los **límites de fotos** (máximo por ítem y tamaño) y el tamaño de las celdas del
-  **collage** se ajustan en `config/reports.php` o con las variables `REPORTS_PHOTOS_*`.
+- El **PDF se genera en cola** (`QUEUE_CONNECTION=database`). En local hay que tener un
+  worker corriendo: `php artisan queue:work`. El informe muestra el estado (en cola,
+  generando, listo o con error) y habilita la descarga al terminar.
+- Los **límites de fotos** (máximo por ítem y tamaño) y la **optimización** (lado máximo
+  `1500 px` y calidad JPEG `70`, para que un informe de ~150 fotos quede bajo 20 MB) se
+  ajustan en `config/reports.php` o con las variables `REPORTS_PHOTOS_*`.
   Los formatos aceptados son JPG, PNG y WEBP; los HEIC del iPhone se rechazan con un aviso.
 - **Evidencia por enlace**: el campo del ítem acepta una carpeta o archivo de Drive, una
   imagen directa (JPG/PNG/WEBP) o cualquier otro enlace. Para incrustar una carpeta de Drive
   debe estar compartida como “Cualquiera con el enlace”; si el proveedor bloquea el iframe,
   siempre queda el botón para abrir el enlace.
+- **Sincronización con Google Drive**: defina `GOOGLE_DRIVE_CREDENTIALS` con la ruta al JSON
+  de una cuenta de servicio y comparta la carpeta raíz de eventos con el correo de esa cuenta
+  como lector. El botón “Sincronizar Drive” (por ítem y por informe) trae las fotos nuevas al
+  storage propio y las optimiza; nunca borra nada en Drive y las que no tienen permiso quedan
+  marcadas con el error.
 
 ---
 
@@ -196,7 +206,7 @@ composer test                  # lint:check + types:check + tests
   de 400 px) vía GD.
 - **Enlaces de Google Drive**: pegar enlaces de archivo (se muestran por su miniatura) o de
   carpeta (vista incrustada). La carpeta debe estar compartida como *"cualquiera con el enlace"*.
-- Reordenar fotos (subir/bajar), editar la leyenda y eliminar.
+- Reordenar fotos (arrastrar y soltar), editar la leyenda y eliminar.
 
 ### Trazabilidad
 - Cada cambio de campo en un informe o ítem queda en `report_activity_logs` con **quién, cuándo,
@@ -375,6 +385,4 @@ php artisan test       # PHPUnit (Feature + Unit)
 
 ## Pendientes
 
-- Generación de **PDF en cola** (hoy es síncrona: botón "Generar PDF").
-- Reordenar ítems y fotos con **arrastrar y soltar** (hoy con botones subir/bajar).
-- Sincronización automática de Google Drive con cuenta de servicio (opcional).
+- Ninguno bloqueante para el MVP. Ver `PLAN_MVP.md` para las tareas de QA y despliegue.

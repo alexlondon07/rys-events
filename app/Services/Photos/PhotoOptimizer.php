@@ -11,7 +11,9 @@ use RuntimeException;
  */
 class PhotoOptimizer
 {
-    public const MAX_DIMENSION = 1600;
+    public const MAX_DIMENSION = 1500;
+
+    public const QUALITY = 70;
 
     public const THUMB_DIMENSION = 400;
 
@@ -21,9 +23,12 @@ class PhotoOptimizer
     public function optimize(
         string $sourcePath,
         string $destinationPath,
-        int $maxDimension = self::MAX_DIMENSION,
-        int $quality = 75,
+        ?int $maxDimension = null,
+        ?int $quality = null,
     ): array {
+        $maxDimension ??= (int) config('reports.photos.max_dimension', self::MAX_DIMENSION);
+        $quality ??= (int) config('reports.photos.quality', self::QUALITY);
+
         $image = $this->resizeToFit($this->load($sourcePath), $maxDimension);
         $width = imagesx($image);
         $height = imagesy($image);

@@ -35,4 +35,23 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google Drive
+    |--------------------------------------------------------------------------
+    |
+    | `credentials` es la ruta al JSON de la cuenta de servicio (recomendado).
+    | `api_key` sirve como alternativa para carpetas públicas ("cualquiera con
+    | el enlace"). Con la cuenta de servicio, el cliente comparte la carpeta
+    | raíz de eventos con el correo de esa cuenta como lector, una sola vez.
+    |
+    */
+
+    'google' => [
+        'drive' => [
+            'credentials' => env('GOOGLE_DRIVE_CREDENTIALS'),
+            'api_key' => env('GOOGLE_DRIVE_API_KEY'),
+        ],
+    ],
+
 ];

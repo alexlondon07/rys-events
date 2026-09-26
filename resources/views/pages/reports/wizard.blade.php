@@ -3,12 +3,14 @@
 use App\Actions\Reports\AddReportItemToReport;
 use App\Actions\Reports\StoreItemPhotos;
 use App\Actions\Reports\SyncItemDriveLinks;
+use App\Jobs\SyncItemDrivePhotos;
 use App\Models\ItemCatalog;
 use App\Models\Municipality;
 use App\Models\Report;
 use App\Models\ReportItem;
 use App\Models\ReportItemPhoto;
 use App\Models\TextTemplate;
+use App\Services\Drive\DriveClient;
 use App\Services\Photos\EvidenceLink;
 use App\Services\Photos\PhotoOptimizer;
 use App\Services\Text\TextTemplateRenderer;
@@ -356,6 +358,61 @@ new #[Title('Editar informe')] class extends Component {
         $this->loadItems();
     }
 
+    public function reorderItems(int|string $key, int $position): void
+    {
+        $item = ReportItem::query()->find((int) $key);
+
+        if (! $item) {
+            return;
+        }
+
+        $ids = collect($this->items)
+            ->where('type', $item->type)
+            ->pluck('id')
+            ->reject(fn ($id): bool => (int) $id === $item->id)
+            ->values();
+
+        $position = max(0, min($position, $ids->count()));
+        $ids->splice($position, 0, [$item->id]);
+
+        foreach ($ids as $order => $id) {
+            ReportItem::query()->whereKey($id)->update([
+                'sort_order' => $order + 1,
+                'updated_in_app_at' => now(),
+            ]);
+        }
+
+        $this->report()->touch();
+        $this->loadItems();
+    }
+
+    public function reorderPhotos(int|string $key, int $position): void
+    {
+        $photo = ReportItemPhoto::query()->find((int) $key);
+
+        if (! $photo) {
+            return;
+        }
+
+        $ids = ReportItemPhoto::query()
+            ->where('report_item_id', $photo->report_item_id)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->pluck('id')
+            ->reject(fn ($id): bool => (int) $id === $photo->id)
+            ->values();
+
+        $position = max(0, min($position, $ids->count()));
+        $ids->splice($position, 0, [$photo->id]);
+
+        foreach ($ids as $order => $id) {
+            ReportItemPhoto::query()->whereKey($id)->update(['sort_order' => $order + 1]);
+        }
+
+        $this->report()->touch();
+        $this->loadItems();
+    }
+
     private function persistPhotoCaption(int $index, int $photoIndex): void
     {
         $photoData = $this->items[$index]['photos'][$photoIndex] ?? null;
@@ -393,6 +450,19 @@ new #[Title('Editar informe')] class extends Component {
         ]);
         $this->report()->touch();
         $this->loadItems();
+    }
+
+    public function syncDrivePhotos(int $index): void
+    {
+        if (! app(DriveClient::class)->isConfigured()) {
+            Flux::toast(variant: 'danger', text: 'Google Drive no está configurado. Defina la cuenta de servicio.');
+
+            return;
+        }
+
+        SyncItemDrivePhotos::dispatch($this->itemAt($index));
+
+        Flux::toast(variant: 'success', text: 'Sincronización de Drive en cola. Las fotos aparecerán al terminar.');
     }
 
     public function finalize(): void
@@ -915,15 +985,24 @@ new #[Title('Editar informe')] class extends Component {
             </details>
         </section>
 
-        @forelse ($sectionItems as $item)
+        @if (count($sectionItems) === 0)
+            <section class="rounded-xl border border-dashed border-[#D3CBBB] bg-white p-10 text-center text-sm text-[#5F584A]">
+                No hay ítems en esta sección. Use “Agregar ítem”.
+            </section>
+        @else
+        <div wire:sort="reorderItems" class="flex flex-col gap-5">
+        @foreach ($sectionItems as $item)
             @php($index = collect($items)->search(fn ($candidate) => $candidate['id'] === $item['id']))
-            <section wire:key="item-{{ $item['id'] }}" class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm">
+            <section wire:key="item-{{ $item['id'] }}" wire:sort:item="{{ $item['id'] }}" class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm">
                 <div class="flex items-center justify-between gap-3 border-b border-[#EDE9E0] pb-4">
                     <div class="flex items-center gap-3">
                         <span class="font-mono text-xs font-bold text-[#7F5C12]">{{ $item['ref'] }}</span>
                         <span class="text-sm font-semibold">{{ $item['artist_name'] ?: $item['category_label'] ?: 'Ítem sin nombre' }}</span>
                     </div>
                     <div class="flex items-center gap-1">
+                        <span wire:sort:handle class="cursor-grab rounded-md p-2 text-[#8A8274] transition hover:bg-[#F3F1EC] hover:text-[#17150F]" title="Arrastrar para reordenar" aria-label="Arrastrar para reordenar">
+                            <flux:icon.bars-3 class="size-4" />
+                        </span>
                         <flux:button size="sm" variant="ghost" icon="chevron-up" wire:click="moveItem({{ $index }}, -1)" aria-label="Subir ítem" />
                         <flux:button size="sm" variant="ghost" icon="chevron-down" wire:click="moveItem({{ $index }}, 1)" aria-label="Bajar ítem" />
                         <flux:button size="sm" variant="ghost" icon="trash" wire:click="removeItem({{ $index }})" wire:confirm="¿Eliminar el ítem {{ $item['ref'] }}?">Eliminar</flux:button>
@@ -966,18 +1045,15 @@ new #[Title('Editar informe')] class extends Component {
                     </div>
 
                     @if (count($item['photos']) > 0)
-                        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                        <div wire:sort="reorderPhotos" class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                             @foreach ($item['photos'] as $photo)
-                                <div wire:key="photo-{{ $photo['id'] }}" class="overflow-hidden rounded-lg border border-[#E3DED3] bg-white">
+                                <div wire:key="photo-{{ $photo['id'] }}" wire:sort:item="{{ $photo['id'] }}" class="overflow-hidden rounded-lg border border-[#E3DED3] bg-white">
                                     <div class="relative">
                                         <img src="{{ $photo['url'] }}" alt="{{ $photo['caption'] }}" class="h-28 w-full object-cover" />
                                         <div class="absolute right-1.5 top-1.5 flex gap-1">
-                                            <button type="button" wire:click="movePhoto({{ $index }}, {{ $photo['id'] }}, -1)" class="rounded-full bg-[#17150F]/80 p-1 text-white" aria-label="Mover antes">
-                                                <flux:icon.chevron-up class="size-3.5" />
-                                            </button>
-                                            <button type="button" wire:click="movePhoto({{ $index }}, {{ $photo['id'] }}, 1)" class="rounded-full bg-[#17150F]/80 p-1 text-white" aria-label="Mover después">
-                                                <flux:icon.chevron-down class="size-3.5" />
-                                            </button>
+                                            <span wire:sort:handle class="cursor-grab rounded-full bg-[#17150F]/80 p-1 text-white" title="Arrastrar para reordenar" aria-label="Arrastrar para reordenar">
+                                                <flux:icon.bars-3 class="size-3.5" />
+                                            </span>
                                             <button type="button" wire:click="removePhoto({{ $index }}, {{ $photo['id'] }})" wire:confirm="¿Eliminar esta foto?" class="rounded-full bg-[#17150F]/80 p-1 text-white" aria-label="Eliminar foto">
                                                 <flux:icon.x-mark class="size-3.5" />
                                             </button>
@@ -1017,14 +1093,26 @@ new #[Title('Editar informe')] class extends Component {
                             </div>
                             <p class="mt-2 text-xs text-[#8A8274]">Si el proveedor bloquea la vista incrustada, use el enlace directo. <a href="{{ $evidence->openUrl() }}" target="_blank" rel="noopener" class="font-semibold text-[#7F5C12] underline">Abrir enlace</a></p>
                         @endif
+
+                        @php($driveReady = app(\App\Services\Drive\DriveClient::class)->isConfigured())
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E3DED3] pt-4">
+                            <p class="text-xs text-[#5F584A]">
+                                @if ($driveReady)
+                                    Trae las fotos de Drive al sistema (las copia y optimiza; no borra nada en Drive).
+                                @else
+                                    Configure la cuenta de servicio de Google Drive para descargar las fotos automáticamente.
+                                @endif
+                            </p>
+                            <flux:button size="sm" variant="outline" icon="arrow-down-tray" wire:click="syncDrivePhotos({{ $index }})" :disabled="! $driveReady" wire:loading.attr="disabled" wire:target="syncDrivePhotos">
+                                Sincronizar fotos de Drive
+                            </flux:button>
+                        </div>
                     </div>
                 </div>
             </section>
-        @empty
-            <section class="rounded-xl border border-dashed border-[#D3CBBB] bg-white p-10 text-center text-sm text-[#5F584A]">
-                No hay ítems en esta sección. Use “Agregar ítem”.
-            </section>
-        @endforelse
+        @endforeach
+        </div>
+        @endif
     @endif
 
     @if ($step === 5)

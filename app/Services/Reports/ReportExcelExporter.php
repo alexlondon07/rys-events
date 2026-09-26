@@ -24,7 +24,7 @@ class ReportExcelExporter
 
     public function export(Report $report): string
     {
-        $report->load(['municipality.department', 'items.photos']);
+        $report->load(['municipality.department', 'items.photos', 'imports.user']);
 
         $path = "reports/{$report->id}/informe-{$report->contract_number}.xlsx";
         $absolute = Storage::disk('local')->path($path);
@@ -41,6 +41,8 @@ class ReportExcelExporter
         $this->writeItemsSheet($writer, $report);
         $writer->addNewSheetAndMakeItCurrent();
         $this->writePhotosSheet($writer, $report);
+        $writer->addNewSheetAndMakeItCurrent();
+        $this->writeHistorySheet($writer, $report);
         $writer->addNewSheetAndMakeItCurrent();
         $writer->getCurrentSheet()->setName('_meta');
         $writer->addRow($this->row([self::VERSION]));
@@ -146,6 +148,32 @@ class ReportExcelExporter
     {
         return $item->evidence_url
             ?: ($item->drive_folder_id ? "https://drive.google.com/drive/folders/{$item->drive_folder_id}" : null);
+    }
+
+    /**
+     * Hoja informativa con la versión de plantilla y el resumen de las últimas
+     * cargas. No la lee el importador: es para que quede el rastro en el archivo.
+     */
+    private function writeHistorySheet(Writer $writer, Report $report): void
+    {
+        $writer->getCurrentSheet()->setName('Historial');
+
+        $writer->addRow($this->row(['version', 'fecha', 'usuario', 'estado', 'resumen']));
+        $writer->addRow($this->row(['Versión', 'Fecha', 'Usuario', 'Estado', 'Resumen']));
+
+        foreach ($report->imports as $import) {
+            $writer->addRow($this->row([
+                $import->version ? 'v'.$import->version : 'Borrador',
+                $import->created_at?->format('Y-m-d H:i'),
+                $import->user?->name,
+                match ($import->status) {
+                    'applied' => 'Aplicada',
+                    'failed' => 'Fallida',
+                    default => 'En revisión',
+                },
+                $import->status === 'applied' ? $import->summaryLine() : '—',
+            ]));
+        }
     }
 
     /**

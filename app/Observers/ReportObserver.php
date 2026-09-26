@@ -30,7 +30,7 @@ class ReportObserver
 
     public function deleted(Report $report): void
     {
-        if (! ActivityLogContext::isRecording()) {
+        if (! ActivityLogContext::isRecording() || $report->isForceDeleting()) {
             return;
         }
 

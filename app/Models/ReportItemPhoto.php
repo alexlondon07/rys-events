@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'report_item_id', 'source', 'drive_file_id', 'drive_url', 'path', 'thumb_path',
-    'original_name', 'caption', 'layout', 'sort_order', 'sync_status', 'taken_at',
-    'width', 'height', 'size_bytes',
+    'original_name', 'caption', 'layout', 'sort_order', 'sync_status', 'sync_error',
+    'taken_at', 'width', 'height', 'size_bytes',
 ])]
 class ReportItemPhoto extends Model
 {

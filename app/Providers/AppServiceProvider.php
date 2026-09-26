@@ -6,6 +6,8 @@ use App\Models\Report;
 use App\Models\ReportItem;
 use App\Observers\ReportItemObserver;
 use App\Observers\ReportObserver;
+use App\Services\Drive\DriveClient;
+use App\Services\Drive\GoogleDriveClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(DriveClient::class, GoogleDriveClient::class);
     }
 
     /**

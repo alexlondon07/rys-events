@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\Report;
+use App\Models\ReportImport;
 use App\Models\ReportItem;
 use App\Models\User;
 use App\Services\ReportImport\TemplateReader;
@@ -79,5 +80,29 @@ class ReportExcelTest extends TestCase
         $this->assertCount(1, $source['items']);
         $this->assertSame('ART-01', $source['items'][0]['ref']);
         $this->assertSame('2 por página', $source['items'][0]['distribucion_fotos']);
+    }
+
+    public function test_the_exported_excel_includes_a_history_sheet(): void
+    {
+        Storage::fake('local');
+
+        ReportImport::create([
+            'report_id' => $this->report->id,
+            'user_id' => $this->user->id,
+            'original_name' => 'ejemplo.xlsx',
+            'file_path' => 'imports/ejemplo.xlsx',
+            'status' => 'applied',
+            'version' => 1,
+            'photos_added' => 3,
+            'summary' => ['result' => ['created' => 1, 'updated' => 0, 'unchanged' => 0]],
+        ]);
+
+        $path = app(ReportExcelExporter::class)->export($this->report->fresh());
+        $sheets = app(TemplateReader::class)->readSheets(Storage::disk('local')->path($path));
+
+        $this->assertArrayHasKey('Historial', $sheets);
+        $this->assertSame('version', $sheets['Historial'][1][0]);
+        $this->assertSame('v1', $sheets['Historial'][3][0]);
+        $this->assertSame('1 nuevos · 0 actualizados · 0 sin cambios · 3 fotos', $sheets['Historial'][3][4]);
     }
 }

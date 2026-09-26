@@ -16,6 +16,8 @@ return [
     'photos' => [
         'max_per_item' => (int) env('REPORTS_PHOTOS_MAX_PER_ITEM', 60),
         'max_size_kb' => (int) env('REPORTS_PHOTOS_MAX_SIZE_KB', 10240),
+        'max_dimension' => (int) env('REPORTS_PHOTOS_MAX_DIMENSION', 1500),
+        'quality' => (int) env('REPORTS_PHOTOS_QUALITY', 70),
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'cover_max_size_kb' => (int) env('REPORTS_COVER_MAX_SIZE_KB', 5120),
     ],

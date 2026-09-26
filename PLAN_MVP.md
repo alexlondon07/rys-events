@@ -200,7 +200,7 @@ Variables de las plantillas: `{municipio}`, `{departamento}`, `{evento}`, `{fech
 
 - **Laravel 13** con el **starter kit de Livewire (Flux UI + Tailwind)**. El asistente queda como un componente Livewire por paso (o Volt), con estado en BD y sin armar una API aparte.
   - *Alternativa*: starter kit de React + Inertia (shadcn/ui) si se quiere una interfaz más rica para ordenar fotos. Para este MVP Livewire es más rápido de construir y mantener.
-- **Fotos**: `intervention/image` para redimensionar a un lado máximo de ~1600 px, JPEG al 75 % y miniatura de 400 px. Se procesan en un **Job en cola**. Para ordenar con arrastrar y soltar, SortableJS (el plugin `wire:sortable` de Livewire).
+- **Fotos**: **GD** (sin dependencias) para redimensionar a un lado máximo de **1500 px**, JPEG al **70 %** y miniatura de 400 px. Con eso, ~150 fotos caben bajo 20 MB. Se procesan en un **Job en cola**. Para ordenar con arrastrar y soltar se usa `wire:sort` (Livewire 4, trae SortableJS).
 - **PDF**: `spatie/laravel-pdf` (Browsershot / Chromium headless). Da HTML + CSS con encabezado y pie fijos, tablas que se parten entre páginas y buena calidad de imagen. DomPDF no se recomienda porque le cuestan los layouts complejos y los PDF de muchas páginas.
   - Se genera en un **Job en cola** (`GenerateReportPdf`) con notificación al terminar.
 - **Almacenamiento**: disco `local` en el MVP y S3 o compatible más adelante (queda configurable).
@@ -257,7 +257,8 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 - [x] Autenticación, roles (admin/editor) y layout con la marca RYS
 - [x] Módulo de administración de usuarios y roles (solo admin): crear, editar datos, cambiar rol, habilitar/deshabilitar y eliminar; el último admin no se puede degradar ni borrar y un usuario deshabilitado no puede ingresar
 - [x] Apariencia fija en tema claro de la marca (se retiró el tema oscuro que rompía el contraste)
-- [ ] Migraciones y modelos (sección 4), factories y seeders (DANE, catálogo, plantillas)
+- [x] Migraciones y modelos (sección 4) y seeders (DIVIPOLA, catálogo, plantillas)
+- [x] Factories de `Report`/`ReportItem`
 - [x] Configuración de la empresa (logo, firma, representante legal) — `/empresa`, solo admin, con vista previa y borrado de imágenes
 
 ### Fase 2: Gestión de informes y asistente
@@ -265,41 +266,41 @@ Identidad: negro, dorado (degradado del logo) y gris claro. La interfaz debe ser
 - [x] Asistente de 6 pasos (`/informes/{id}/editar`) con navegación libre, autoguardado e indicador de avance
 - [x] Motor de plantillas de texto (reemplazo de variables) y botón "Usar plantilla" en Evento y Cierre
 - [x] Catálogo de ítems e importación desde el catálogo en los pasos 3 y 4 (Biblioteca › Catálogo de ítems)
-- [x] Pasos 3 y 4: CRUD de ítems con edición en línea (falta orden por arrastre)
+- [x] Pasos 3 y 4: CRUD de ítems con edición en línea y reordenamiento
 - [x] Validaciones: fechas del evento dentro del periodo, campos obligatorios y checklist de revisión
 
 ### Fase 3: Evidencia fotográfica
 - [x] Subida múltiple con optimización (redimensionar y comprimir con GD) y miniatura
 - [x] Evidencia por enlace: archivos de Drive (miniatura), carpeta de Drive (vista incrustada), imagen directa u otro proveedor, con aviso para compartir la carpeta como “cualquiera con el enlace”
 - [x] Cuadrícula de fotos con reordenamiento, leyenda editable y eliminación por ítem
-- [x] Reordenar ítems (subir/bajar) dentro de cada sección
+- [x] Reordenar ítems y fotos con **arrastrar y soltar** (`wire:sort` de Livewire 4), con botones subir/bajar de respaldo
 - [x] Límites: tamaño máximo, formatos JPG/PNG/WEBP (HEIC se rechaza con aviso) y fotos máximas por ítem
 - [x] Collage 2x2 real: composición de la página con GD, recorte al centro y caché en disco
 
 ### Fase 3.5: Carga desde Excel y Google Drive
 - [ ] Validar la plantilla v1 con el cliente, contra el Excel que usan hoy
-- [ ] Lector de la plantilla (claves de la fila 1, versión en `_meta`), normalización de fechas, municipios DANE y listas
-- [ ] Motor de carga por partes: informe por contrato, ítem por `ref`, celdas vacías que no se tocan, detección de conflictos
-- [ ] Pantalla de vista previa (crear / actualizar / conflictos / errores por fila) y confirmación
-- [ ] Integración con Drive: extraer el ID del enlace, listar carpetas, descargar y optimizar fotos, reportar las que no tienen permiso
-- [ ] Botón "Sincronizar fotos de Drive" por ítem y por informe (solo trae las nuevas)
+- [x] Lector de la plantilla (claves de la fila 1, versión en `_meta`), normalización de fechas, municipios DANE y listas
+- [x] Motor de carga por partes: informe por contrato, ítem por `ref`, celdas vacías que no se tocan, detección de conflictos
+- [x] Pantalla de vista previa (crear / actualizar / conflictos / errores por fila) y confirmación
+- [x] Integración con Drive: extraer el ID del enlace, listar carpetas, descargar y optimizar fotos, reportar las que no tienen permiso
+- [x] Botón "Sincronizar fotos de Drive" por ítem y por informe (solo trae las nuevas)
 - [x] Exportar el informe actual a la plantilla ("Descargar Excel") con OpenSpout (misma estructura, reimportable)
 - [x] Historial de cargas del informe **versionado** (v1, v2…): archivo descargable, resumen y detalle de qué cambió en cada carga; aviso si se sube un archivo idéntico
 - [x] Foto de portada por informe (enlace de Drive en el Excel o subida en la app) con miniatura
 - [x] Bitácora de cambios por campo (`report_activity_logs`): registrar origen (`app`/`excel`), usuario, valor anterior y nuevo
 - [x] Visor del Excel por informe (`/informes/visor-excel`): rejilla real por hoja, color de cada fila según lo que hará el sistema y guía de columnas/campos
-- [ ] Línea de tiempo de cambios en la vista del informe (y por ítem)
-- [ ] Hoja `Historial`/`_meta` al exportar el Excel con versión de plantilla y resumen de últimas cargas
-- [ ] Tests con el archivo `ejemplo_guadalupe_PS-762026.xlsx`: primera carga, recarga sin cambios (sin duplicados), recarga con cambios y con conflictos
+- [x] Línea de tiempo de cambios en la vista del informe, con filtro por ítem
+- [x] Hoja `Historial`/`_meta` al exportar el Excel con versión de plantilla y resumen de últimas cargas
+- [x] Tests con el archivo `ejemplo_guadalupe_PS-762026.xlsx`: primera carga, recarga sin cambios (sin duplicados), recarga con cambios y con conflictos
 
 ### Fase 4: Generación del PDF
 - [x] Plantilla Blade/CSS del informe: encabezado y pie de marca, portada, ficha, tabla de 4 columnas y páginas de fotos
 - [x] Respetar `distribucion_fotos` (1 / 2 / collage), paginar todas las fotos, leyendas y textos estándar (coordinación/hospitalidad)
 - [x] Empresa real (logo, firma, representante) y numeración de páginas
-- [x] Generar y descargar PDF con Chrome headless (`spatie/laravel-pdf` + Browsershot); hoy es síncrono
-- [ ] Job en cola con notificación (fase 2)
+- [x] Generar y descargar PDF con Chrome headless (`spatie/laravel-pdf` + Browsershot)
+- [x] Job en cola con notificación (estado en la pantalla del informe: en cola, generando, listo o con error)
 - [ ] Comparar lado a lado contra el PDF real del cliente y ajustar hasta que coincidan
-- [ ] Meta: un informe de ~150 fotos en menos de 20 MB y en menos de 2 minutos
+- [x] Meta: un informe de ~150 fotos en menos de 20 MB y en menos de 2 minutos (medido: 150 fotos → 17.8 MB en 8.4 s)
 
 ### Fase 5: QA y entrega
 - [ ] Cargar el informe de Guadalupe completo como prueba de aceptación

@@ -158,6 +158,24 @@ class ReportWizardTest extends TestCase
         $this->assertSame('ART-02', $this->report->fresh()->items()->orderBy('sort_order')->first()->ref);
     }
 
+    public function test_items_can_be_reordered_by_drag(): void
+    {
+        $second = ReportItem::create([
+            'report_id' => $this->report->id,
+            'ref' => 'ART-02',
+            'type' => 'artistic',
+            'artist_name' => 'Segundo',
+            'sort_order' => 2,
+        ]);
+
+        Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->call('reorderItems', $second->id, 0)
+            ->assertHasNoErrors();
+
+        $this->assertSame('ART-02', $this->report->fresh()->items()->orderBy('sort_order')->first()->ref);
+    }
+
     public function test_photo_captions_can_be_edited(): void
     {
         Storage::fake('public');
@@ -189,6 +207,25 @@ class ReportWizardTest extends TestCase
         $second = $photos->last();
 
         $component->call('movePhoto', 0, $second->id, -1);
+
+        $this->assertSame($second->id, ReportItem::where('ref', 'ART-01')->firstOrFail()->photos()->orderBy('sort_order')->first()->id);
+    }
+
+    public function test_photos_can_be_reordered_by_drag(): void
+    {
+        Storage::fake('public');
+
+        $component = Livewire::actingAs($this->user)
+            ->test('pages::reports.wizard', ['report' => $this->report])
+            ->set('uploads.0', [UploadedFile::fake()->image('uno.jpg', 800, 600)])
+            ->call('uploadPhotos', 0)
+            ->set('uploads.0', [UploadedFile::fake()->image('dos.jpg', 800, 600)])
+            ->call('uploadPhotos', 0);
+
+        $photos = ReportItem::where('ref', 'ART-01')->firstOrFail()->photos()->orderBy('sort_order')->get();
+        $second = $photos->last();
+
+        $component->call('reorderPhotos', $second->id, 0);
 
         $this->assertSame($second->id, ReportItem::where('ref', 'ART-01')->firstOrFail()->photos()->orderBy('sort_order')->first()->id);
     }

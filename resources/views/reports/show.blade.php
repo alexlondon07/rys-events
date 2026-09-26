@@ -28,6 +28,27 @@
             </div>
         @endif
 
+        <div x-data="{
+            status: @js($report->pdf_status ?: 'idle'),
+            error: @js($report->pdf_error),
+            timer: null,
+            get busy() { return this.status === 'queued' || this.status === 'processing'; },
+            init() { if (this.busy) this.start(); },
+            start() { this.timer = setInterval(() => this.check(), 4000); },
+            async check() {
+                try {
+                    const response = await fetch(@js(route('reports.pdf.status', $report)), { headers: { 'Accept': 'application/json' } });
+                    if (! response.ok) return;
+                    const data = await response.json();
+                    this.status = data.status;
+                    this.error = data.error;
+                    if (data.status === 'ready' || data.status === 'failed') {
+                        clearInterval(this.timer);
+                        window.location.reload();
+                    }
+                } catch (exception) {}
+            },
+        }">
         <header class="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div>
                 <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#7F5C12] hover:text-[#17150F]" wire:navigate>
@@ -56,11 +77,11 @@
                     Vista previa
                 </flux:button>
                 @if ($report->pdf_path)
-                    <flux:button :href="route('reports.pdf.download', $report)" variant="primary" icon="arrow-down-tray">
+                    <flux:button :href="route('reports.pdf.download', $report)" variant="primary" icon="arrow-down-tray" x-show="!busy">
                         Descargar PDF
                     </flux:button>
                 @endif
-                <form method="POST" action="{{ route('reports.pdf.generate', $report) }}" x-data="{ busy: false }" @submit="busy = true">
+                <form method="POST" action="{{ route('reports.pdf.generate', $report) }}" @submit="if (busy) { $event.preventDefault(); }">
                     @csrf
                     <flux:button type="submit" variant="outline" icon="document-arrow-down" x-bind:disabled="busy">
                         <span x-show="!busy">{{ $report->pdf_path ? 'Regenerar PDF' : 'Generar PDF' }}</span>
@@ -70,8 +91,33 @@
                 <flux:button :href="route('reports.excel', $report)" variant="outline" icon="table-cells">
                     Descargar Excel
                 </flux:button>
+                @if (app(\App\Services\Drive\DriveClient::class)->isConfigured())
+                    <form method="POST" action="{{ route('reports.drive.sync', $report) }}">
+                        @csrf
+                        <flux:button type="submit" variant="outline" icon="arrow-down-tray" title="Trae al sistema las fotos de Drive de todos los ítems">
+                            Sincronizar Drive
+                        </flux:button>
+                    </form>
+                @endif
             </div>
         </header>
+
+        <div x-show="busy || status === 'failed'" x-cloak class="rounded-xl border px-5 py-4 shadow-sm"
+            :class="status === 'failed' ? 'border-[#F1C4BE] bg-[#F9E3E0]' : 'border-[#E8D6A8] bg-[#FBEEDA]'">
+            <div class="flex items-start gap-3">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-full" :class="status === 'failed' ? 'bg-[#F3C9C3] text-[#A8261D]' : 'bg-[#F3E2BE] text-[#8F520A]'">
+                    <template x-if="status === 'failed'"><flux:icon.exclamation-triangle class="size-5" /></template>
+                    <template x-if="status !== 'failed'"><flux:icon.arrow-path class="size-5 animate-spin" /></template>
+                </span>
+                <div class="min-w-0">
+                    <p class="font-semibold" :class="status === 'failed' ? 'text-[#A8261D]' : 'text-[#8F520A]'"
+                        x-text="status === 'failed' ? 'No se pudo generar el PDF' : 'Generando el PDF en segundo plano…'"></p>
+                    <p class="mt-1 text-sm text-[#5F584A]" x-show="status === 'failed'" x-text="error || 'Vuelva a intentarlo. Verifique que Chrome esté disponible.'"></p>
+                    <p class="mt-1 text-sm text-[#5F584A]" x-show="status !== 'failed'">Puede seguir trabajando; la descarga se habilita sola al terminar.</p>
+                </div>
+            </div>
+        </div>
+        </div>
 
         <section class="overflow-hidden rounded-xl border border-[#D3CBBB] bg-white shadow-sm">
             <div class="grid sm:grid-cols-3 xl:grid-cols-6">
@@ -157,6 +203,7 @@
                                         <p class="mt-0.5 line-clamp-1 text-xs text-[#8A8274]">{{ $item->specification ?: 'Sin requerimiento registrado' }}</p>
                                     </div>
                                     <div class="flex items-center gap-2 md:justify-end">
+                                        <a href="{{ route('reports.show', ['report' => $report, 'item' => $item->ref]) }}#historial" class="text-[11px] font-semibold text-[#7F5C12] hover:underline" title="Ver cambios de este ítem">Cambios</a>
                                         <span class="rounded-full bg-[#F3F1EC] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[#5F584A]">{{ $item->photos->count() }} fotos</span>
                                         <span @class([
                                             'rounded-full px-2 py-0.5 text-[11px] font-semibold',
@@ -273,10 +320,20 @@
                     </dl>
                 </section>
 
-                <section class="min-w-0 rounded-xl border border-[#E3DED3] bg-white p-5 shadow-sm">
+                <section id="historial" class="min-w-0 rounded-xl border border-[#E3DED3] bg-white p-5 shadow-sm">
                     <div class="flex items-center justify-between">
-                        <h2 class="font-display font-bold">Historial de cambios</h2>
-                        <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $activityCount }}</span>
+                        <div>
+                            <h2 class="font-display font-bold">Historial de cambios</h2>
+                            @if ($selectedItem)
+                                <p class="mt-0.5 text-xs text-[#8A8274]">Filtrando por <span class="font-semibold text-[#7F5C12]">{{ $selectedItem }}</span></p>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2">
+                            @if ($selectedItem)
+                                <a href="{{ route('reports.show', $report) }}#historial" class="text-xs font-semibold text-[#7F5C12] hover:underline">Ver todo</a>
+                            @endif
+                            <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $activityCount }}</span>
+                        </div>
                     </div>
 
                     <ol class="mt-4 space-y-4">

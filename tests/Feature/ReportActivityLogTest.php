@@ -59,6 +59,26 @@ class ReportActivityLogTest extends TestCase
         ]);
     }
 
+    public function test_the_report_view_can_filter_activity_by_item(): void
+    {
+        $this->actingAs($this->user);
+        $this->applyExample();
+
+        $report = Report::where('contract_number', 'PS-762026')->firstOrFail();
+
+        $unfiltered = $this->get(route('reports.show', $report));
+        $unfiltered->assertOk();
+        $this->assertSame(24, $unfiltered->viewData('activityCount'));
+
+        $filtered = $this->get(route('reports.show', ['report' => $report, 'item' => 'ART-07']));
+        $filtered->assertOk()
+            ->assertSee('Filtrando por')
+            ->assertSee('Ver todo');
+
+        $this->assertSame('ART-07', $filtered->viewData('selectedItem'));
+        $this->assertSame(1, $filtered->viewData('activityCount'));
+    }
+
     public function test_reimport_without_changes_does_not_add_activity(): void
     {
         $this->actingAs($this->user);
