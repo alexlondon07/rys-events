@@ -88,6 +88,7 @@ php artisan key:generate
 
 # 3. Base de datos (crear la BD y ajustar credenciales en .env)
 php artisan migrate --seed
+php artisan rys:sync-divipola
 
 # 4. Enlace de almacenamiento (logo, firma y fotos)
 php artisan storage:link
@@ -126,7 +127,8 @@ Notas:
 - `APP_URL` se usa para construir URLs. La app se sirve bajo `public/index.php`, por eso el
   almacenamiento público se referencia con `asset('storage/...')` (que respeta el root de la
   petición) y no con `Storage::url()`.
-- El usuario administrador se crea/actualiza con el seeder (`DatabaseSeeder`).
+- En desarrollo, `DatabaseSeeder` crea el administrador inicial. En producción se
+  provisiona por separado con una contraseña propia.
 - El **tema es claro fijo** (la identidad de marca no tiene modo oscuro).
 - Para el PDF, configure `LARAVEL_PDF_CHROME_PATH` con la ruta a Chrome/Chromium
   (en macOS: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`).
@@ -152,7 +154,8 @@ Notas:
 ## Comandos útiles
 
 ```bash
-php artisan migrate --seed     # migrar y sembrar (admin, DIVIPOLA, biblioteca)
+php artisan migrate --seed     # migrar y sembrar la biblioteca (admin solo en desarrollo)
+php artisan rys:sync-divipola  # cargar departamentos y municipios desde DANE
 php artisan db:seed --force    # volver a sembrar
 php artisan db:seed --class=DemoSeeder   # datos de demostración (empresa, informe y portada)
 php artisan storage:link       # enlace de storage (una vez)
@@ -198,6 +201,10 @@ contener `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://ryseventos.al
 `DB_HOST=mysql`, `DB_DATABASE=alex_rys_db`, una `APP_KEY` única y credenciales de un
 usuario MySQL limitado a esa base. Use `SESSION_SECURE_COOKIE=true` detrás del proxy.
 El volumen `rys-events_storage` conserva fotos y PDFs. Inclúyalo en los backups del VPS.
+En el primer despliegue ejecute el seeder de biblioteca y `rys:sync-divipola`;
+la sincronización necesita acceso al servicio del DANE. Antes de una migración,
+el script guarda una copia de `alex_rys_db`. Configure SMTP antes de depender de
+la recuperación de contraseñas por correo (`MAIL_MAILER=log` solo registra el mensaje).
 
 El despliegue automático se activa con la variable de repositorio `RYS_DEPLOY_ENABLED=true`
 solo después de preparar el servidor. Requiere los secretos `RYS_DEPLOY_KEY` (llave SSH
