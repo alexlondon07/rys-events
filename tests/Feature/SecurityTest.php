@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Http\Middleware\SecurityHeaders;
 use App\Models\Department;
 use App\Models\Municipality;
@@ -115,5 +116,64 @@ class SecurityTest extends TestCase
         );
 
         $this->assertTrue($response->headers->has('Strict-Transport-Security'));
+    }
+
+    public function test_role_and_active_are_not_mass_assignable(): void
+    {
+        $user = User::factory()->create(['role' => 'editor', 'active' => true]);
+
+        $user->fill(['role' => 'admin', 'active' => false])->save();
+        $user->refresh();
+
+        $this->assertSame(UserRole::Editor, $user->role);
+        $this->assertTrue($user->active);
+    }
+
+    public function test_admin_without_two_factor_is_redirected_to_security_settings(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('security.edit'));
+    }
+
+    public function test_admin_with_two_factor_can_access_the_app(): void
+    {
+        $admin = User::factory()->admin()->withTwoFactor()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_editor_without_two_factor_can_access_the_app(): void
+    {
+        $editor = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($editor)->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_admin_can_reach_the_security_settings_to_enable_two_factor(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($admin)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->get(route('security.edit'))
+            ->assertOk();
+    }
+
+    public function test_the_csp_is_report_only_by_default(): void
+    {
+        $response = $this->get('/login');
+
+        $response->assertHeader('Content-Security-Policy-Report-Only');
+        $response->assertHeaderMissing('Content-Security-Policy');
+    }
+
+    public function test_the_csp_is_enforced_when_configured(): void
+    {
+        config()->set('security.csp_enforce', true);
+
+        $this->get('/login')->assertHeader('Content-Security-Policy');
     }
 }

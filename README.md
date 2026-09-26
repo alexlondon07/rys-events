@@ -381,6 +381,9 @@ bloquean).
 ## Seguridad
 
 - **Registro público desactivado**: las cuentas las crea un administrador en “Usuarios y roles”.
+- **2FA obligatorio para administradores**: si un admin no lo tiene activo, se le redirige a
+  “Seguridad” para configurarlo (`RequireTwoFactorForAdmins`).
+- **`role`/`active` no son asignables en masa** (se cambian solo desde el panel de usuarios).
 - **Autenticación** con Fortify: 2FA (TOTP), códigos de recuperación y passkeys; login con
   *rate limiting*.
 - **Autorización**: políticas de informe (`ReportPolicy`) — ver/editar para cualquier usuario
@@ -388,7 +391,8 @@ bloquean).
   protegidas por el middleware `admin`; usuarios deshabilitados son expulsados por
   `EnsureUserIsActive`.
 - **Cabeceras de seguridad** (`SecurityHeaders`): `X-Content-Type-Options`, `X-Frame-Options`,
-  `Referrer-Policy`, `Permissions-Policy` y **HSTS** en producción.
+  `Referrer-Policy`, `Permissions-Policy` y **HSTS** en producción. Además se envía una
+  **CSP** en modo *report-only* (`CSP_ENFORCE=false`), configurable en `config/security.php`.
 - **Producción**: defina `SESSION_SECURE_COOKIE=true` y `TRUSTED_PROXIES` cuando haya HTTPS detrás
   de un reverse proxy.
 - **SSRF**: los enlaces de evidencia solo se incrustan si apuntan a hosts públicos (se bloquean

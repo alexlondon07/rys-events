@@ -26,7 +26,7 @@ class UserManagementTest extends TestCase
 
     public function test_admins_can_see_the_users_list(): void
     {
-        $admin = User::factory()->admin()->create(['name' => 'Admin RYS']);
+        $admin = User::factory()->admin()->withTwoFactor()->create(['name' => 'Admin RYS']);
         $editor = User::factory()->create(['name' => 'Editor Uno']);
 
         $this->actingAs($admin)
@@ -39,7 +39,7 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_can_create_a_user(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::users.index')
@@ -60,7 +60,7 @@ class UserManagementTest extends TestCase
 
     public function test_creating_a_user_requires_a_unique_email(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
         User::factory()->create(['email' => 'repetido@rys.test']);
 
         Livewire::actingAs($admin)
@@ -77,7 +77,7 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_can_change_another_users_role(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
         $editor = User::factory()->create();
 
         Livewire::actingAs($admin)
@@ -90,7 +90,7 @@ class UserManagementTest extends TestCase
 
     public function test_the_last_admin_cannot_be_demoted(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
         $editor = User::factory()->create();
 
         Livewire::actingAs($admin)
@@ -103,7 +103,7 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_cannot_delete_their_own_account(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::users.index')
@@ -114,7 +114,7 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_can_delete_another_user(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
         $editor = User::factory()->create();
 
         Livewire::actingAs($admin)
@@ -126,7 +126,7 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_can_edit_a_users_details(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
         $editor = User::factory()->create(['name' => 'Nombre viejo', 'email' => 'viejo@rys.test']);
 
         Livewire::actingAs($admin)
@@ -144,7 +144,7 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_can_disable_and_enable_a_user(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
         $editor = User::factory()->create();
 
         $component = Livewire::actingAs($admin)->test('pages::users.index');
@@ -158,7 +158,7 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_cannot_disable_themselves(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::users.index')
@@ -169,8 +169,8 @@ class UserManagementTest extends TestCase
 
     public function test_an_admin_can_disable_another_admin(): void
     {
-        $admin = User::factory()->admin()->create();
-        $otherAdmin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
+        $otherAdmin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::users.index')

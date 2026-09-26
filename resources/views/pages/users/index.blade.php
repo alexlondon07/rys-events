@@ -134,7 +134,8 @@ new #[Title('Usuarios')] class extends Component {
             return;
         }
 
-        $user->update(['active' => ! $user->isActive()]);
+        $user->active = ! $user->isActive();
+        $user->save();
         unset($this->users, $this->adminCount, $this->activeAdminCount);
 
         Flux::toast(variant: 'success', text: $user->isActive() ? 'Usuario habilitado.' : 'Usuario deshabilitado.');
@@ -156,10 +157,15 @@ new #[Title('Usuarios')] class extends Component {
             'password.confirmed' => 'Las contraseñas no coinciden.',
         ]);
 
-        User::create([
-            ...$validated,
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
             'email_verified_at' => now(),
         ]);
+        $user->role = $validated['role'];
+        $user->active = true;
+        $user->save();
 
         $this->reset('name', 'email', 'role', 'password', 'password_confirmation', 'showForm');
         $this->role = UserRole::Editor->value;
@@ -192,7 +198,8 @@ new #[Title('Usuarios')] class extends Component {
             return;
         }
 
-        $user->update(['role' => $newRole]);
+        $user->role = $newRole;
+        $user->save();
         unset($this->users, $this->adminCount);
 
         Flux::toast(variant: 'success', text: 'Rol actualizado.');

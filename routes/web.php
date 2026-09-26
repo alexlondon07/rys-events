@@ -9,7 +9,7 @@ Route::get('/', function () {
         : redirect()->route('login');
 })->name('home');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'require-2fa'])->group(function () {
     Route::livewire('dashboard', 'pages::reports.index')->name('dashboard');
 
     Route::livewire('informes/importar', 'pages::reports.import')

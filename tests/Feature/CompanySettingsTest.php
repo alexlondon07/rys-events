@@ -28,7 +28,7 @@ class CompanySettingsTest extends TestCase
 
     public function test_admins_can_save_the_company_settings(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::company.edit')
@@ -50,7 +50,7 @@ class CompanySettingsTest extends TestCase
     public function test_admins_can_upload_a_logo_and_signature(): void
     {
         Storage::fake('public');
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::company.edit')
@@ -70,7 +70,7 @@ class CompanySettingsTest extends TestCase
     public function test_admins_can_remove_the_logo(): void
     {
         Storage::fake('public');
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::company.edit')
@@ -85,7 +85,7 @@ class CompanySettingsTest extends TestCase
     public function test_an_invalid_file_is_rejected(): void
     {
         Storage::fake('public');
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->withTwoFactor()->create();
 
         Livewire::actingAs($admin)
             ->test('pages::company.edit')
