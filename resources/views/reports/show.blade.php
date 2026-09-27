@@ -91,6 +91,22 @@
                 <flux:button :href="route('reports.excel', $report)" variant="outline" icon="table-cells">
                     Descargar Excel
                 </flux:button>
+                @if ($report->status === 'final')
+                    @if ($report->public_share_token)
+                        <a href="{{ route('reports.public.show', $report->public_share_token) }}" target="_blank" class="inline-flex items-center gap-2 border border-[#C9A043] bg-[#F6EEDB] px-4 py-2 text-sm font-semibold text-[#7F5C12]">
+                            <flux:icon.arrow-top-right-on-square class="size-4" /> Portal del cliente
+                        </a>
+                        <form method="POST" action="{{ route('reports.public.revoke', $report) }}">
+                            @csrf @method('DELETE')
+                            <flux:button type="submit" variant="ghost" icon="no-symbol" wire:confirm="¿Revocar el acceso público de este informe?">Revocar enlace</flux:button>
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('reports.public.create', $report) }}">
+                            @csrf
+                            <flux:button type="submit" variant="outline" icon="share">Crear enlace para cliente</flux:button>
+                        </form>
+                    @endif
+                @endif
                 @if (app(\App\Services\Drive\DriveClient::class)->isConfigured())
                     <form method="POST" action="{{ route('reports.drive.sync', $report) }}">
                         @csrf

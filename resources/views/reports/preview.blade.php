@@ -19,6 +19,7 @@
         .cover-copy { position: absolute; left: 10mm; right: 14mm; top: 188mm; z-index: 2; text-align: left; }
         .cover-bottom { position: absolute; inset: auto 0 0; height: 27mm; background: #050504; clip-path: polygon(0 82%, 100% 30%, 100% 100%, 0 100%); }
         .cover-bottom::before { content: ''; position: absolute; left: -2%; right: -2%; top: 47%; height: 2px; background: #C9A043; transform: rotate(-4deg); }
+        .cover-qr { position: absolute; right: 18mm; bottom: 22mm; z-index: 3; width: 30mm; background: #fff; padding: 2mm; }
         @media print {
             @page { size: A4; margin: 0; }
             body { background: white !important; }
@@ -33,8 +34,10 @@
     <div class="preview-toolbar sticky top-0 z-50 border-b border-[#D3CBBB] bg-[#F3F1EC]/95 px-5 py-3 backdrop-blur">
         <div class="mx-auto flex max-w-6xl flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-                <a href="{{ route('reports.show', $report) }}" class="text-sm font-semibold text-[#7F5C12]">← Volver a revisión</a>
-                <p class="mt-0.5 text-sm text-[#5F584A]">Vista previa {{ $report->status === 'draft' ? 'del borrador' : 'del informe final' }} · {{ $report->contract_number }}</p>
+                @if (! $isPublic)
+                    <a href="{{ route('reports.show', $report) }}" class="text-sm font-semibold text-[#7F5C12]">← Volver a revisión</a>
+                @endif
+                <p class="mt-0.5 text-sm text-[#5F584A]">{{ $isPublic ? 'Portal de consulta' : 'Vista previa' }} {{ $report->status === 'draft' ? 'del borrador' : 'del informe final' }} · {{ $report->contract_number }}</p>
             </div>
             <button onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-lg bg-[#17150F] px-5 text-sm font-semibold text-white hover:bg-[#2A2720]">
                 Imprimir o guardar como PDF
@@ -63,6 +66,9 @@
                 </p>
             </div>
             <div class="cover-bottom"></div>
+            @if ($publicShareQr)
+                <div class="cover-qr"><img src="data:image/svg+xml;base64,{{ $publicShareQr }}" alt="Código QR para consultar el informe"></div>
+            @endif
         </section>
 
         <section class="report-page">

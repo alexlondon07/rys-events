@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use App\Jobs\GenerateReportPdf;
 use App\Jobs\SyncReportDrivePhotos;
 use App\Models\CompanySetting;
@@ -18,6 +22,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -47,7 +52,44 @@ class ReportController extends Controller
         return $this->renderPreview($report);
     }
 
-    private function renderPreview(Report $report): View
+    public function createPublicShare(Report $report): RedirectResponse
+    {
+        Gate::authorize('update', $report);
+        abort_unless($report->status === 'final', 422, 'Finalice el informe antes de compartirlo.');
+
+        $report->forceFill([
+            'public_share_token' => Str::random(64),
+            'public_share_enabled_at' => now(),
+        ])->save();
+
+        return back()->with('status', 'Enlace público generado. Compártalo únicamente con el cliente.');
+    }
+
+    public function revokePublicShare(Report $report): RedirectResponse
+    {
+        Gate::authorize('update', $report);
+
+        $report->forceFill([
+            'public_share_token' => null,
+            'public_share_enabled_at' => null,
+        ])->save();
+
+        return back()->with('status', 'El enlace público fue revocado.');
+    }
+
+    public function publicShow(string $token): View
+    {
+        abort_unless(preg_match('/^[A-Za-z0-9]{64}$/', $token) === 1, 404);
+
+        $report = Report::query()
+            ->where('public_share_token', $token)
+            ->where('status', 'final')
+            ->firstOrFail();
+
+        return $this->renderPreview($report, true);
+    }
+
+    private function renderPreview(Report $report, bool $isPublic = false): View
     {
         $report = $this->loadReport($report);
         $renderer = app(TextTemplateRenderer::class);
@@ -66,6 +108,10 @@ class ReportController extends Controller
                 return [$item->id => $urls];
             });
 
+        $publicShareUrl = $report->public_share_token
+            ? route('reports.public.show', ['token' => $report->public_share_token])
+            : null;
+
         return view('reports.preview', [
             'report' => $report,
             'company' => CompanySetting::current(),
@@ -73,7 +119,17 @@ class ReportController extends Controller
             'standardTexts' => $report->items->mapWithKeys(fn (ReportItem $item): array => [
                 $item->id => $item->add_standard_texts ? $renderer->standardTexts($report, $item) : '',
             ]),
+            'isPublic' => $isPublic,
+            'publicShareUrl' => $publicShareUrl,
+            'publicShareQr' => $publicShareUrl ? $this->qrCode($publicShareUrl) : null,
         ]);
+    }
+
+    private function qrCode(string $value): string
+    {
+        $renderer = new ImageRenderer(new RendererStyle(150), new SvgImageBackEnd());
+
+        return base64_encode((new Writer($renderer))->writeString($value));
     }
 
     /**

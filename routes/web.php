@@ -9,6 +9,10 @@ Route::get('/', function () {
         : redirect()->route('login');
 })->name('home');
 
+Route::get('informes/publico/{token}', [ReportController::class, 'publicShow'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->name('reports.public.show');
+
 Route::middleware(['auth'])->group(function () {
     Route::livewire('dashboard', 'pages::reports.index')->name('dashboard');
 
@@ -56,6 +60,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('informes/{report}/drive', [ReportController::class, 'syncDrive'])
         ->middleware('throttle:6,1')
         ->name('reports.drive.sync');
+
+    Route::post('informes/{report}/compartir', [ReportController::class, 'createPublicShare'])
+        ->name('reports.public.create');
+
+    Route::delete('informes/{report}/compartir', [ReportController::class, 'revokePublicShare'])
+        ->name('reports.public.revoke');
 
     Route::get('informes/{report}/pdf', [ReportController::class, 'downloadPdf'])
         ->name('reports.pdf.download');

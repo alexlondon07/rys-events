@@ -47,6 +47,7 @@ class Report extends Model
             'pdf_generated_at' => 'datetime',
             'updated_in_app_at' => 'datetime',
             'imported_at' => 'datetime',
+            'public_share_enabled_at' => 'datetime',
         ];
     }
 
