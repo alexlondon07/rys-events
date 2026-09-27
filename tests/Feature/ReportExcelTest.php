@@ -63,7 +63,8 @@ class ReportExcelTest extends TestCase
 
         $this->actingAs($this->user)
             ->get(route('reports.excel', $this->report))
-            ->assertOk();
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }
 
     public function test_the_exported_excel_can_be_read_back(): void

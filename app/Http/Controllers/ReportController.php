@@ -2,10 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
 use App\Jobs\GenerateReportPdf;
 use App\Jobs\SyncReportDrivePhotos;
 use App\Models\CompanySetting;
@@ -16,6 +12,10 @@ use App\Services\Drive\DriveClient;
 use App\Services\Photos\CollageBuilder;
 use App\Services\Reports\ReportExcelExporter;
 use App\Services\Text\TextTemplateRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +27,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+    private const EXCEL_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
     public function show(Request $request, Report $report): View
     {
         Gate::authorize('view', $report);
@@ -127,7 +129,7 @@ class ReportController extends Controller
 
     private function qrCode(string $value): string
     {
-        $renderer = new ImageRenderer(new RendererStyle(150), new SvgImageBackEnd());
+        $renderer = new ImageRenderer(new RendererStyle(150), new SvgImageBackEnd);
 
         return base64_encode((new Writer($renderer))->writeString($value));
     }
@@ -208,7 +210,9 @@ class ReportController extends Controller
 
         $path = $exporter->export($report);
 
-        return Storage::disk('local')->download($path, "informe-{$report->contract_number}.xlsx");
+        return Storage::disk('local')->download($path, "informe-{$report->contract_number}.xlsx", [
+            'Content-Type' => self::EXCEL_MIME_TYPE,
+        ]);
     }
 
     /**
@@ -221,7 +225,9 @@ class ReportController extends Controller
         abort_unless($import->report_id === $report->id, 404);
         abort_unless($import->file_path && Storage::disk('local')->exists($import->file_path), 404);
 
-        return Storage::disk('local')->download($import->file_path, $import->original_name);
+        return Storage::disk('local')->download($import->file_path, $import->original_name, [
+            'Content-Type' => self::EXCEL_MIME_TYPE,
+        ]);
     }
 
     private function loadReport(Report $report): Report
