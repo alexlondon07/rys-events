@@ -271,10 +271,10 @@ new #[Title('Usuarios')] class extends Component {
 }; ?>
 
 <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 py-4">
-    <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-            <p class="text-sm font-semibold text-[#7F5C12]">Administración</p>
-            <h1 class="font-display mt-1 text-3xl font-bold tracking-tight text-[#17150F]">Usuarios y roles</h1>
+    <header class="flex flex-col justify-between gap-4 border-b border-[#D8D1C2] pb-6 sm:flex-row sm:items-end">
+        <div class="border-l-2 border-[#C9A043] pl-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7F5C12]">Administración</p>
+            <h1 class="font-display mt-1 text-3xl font-bold tracking-[-0.025em] text-[#17150F]">Usuarios y roles</h1>
             <p class="mt-2 text-[#5F584A]">Cree cuentas y defina quién administra el sistema.</p>
         </div>
         <flux:button wire:click="toggleForm" variant="primary" :icon="$showForm ? 'x-mark' : 'plus'">
@@ -283,7 +283,7 @@ new #[Title('Usuarios')] class extends Component {
     </header>
 
     @if ($showForm)
-        <form wire:submit="createUser" class="rounded-xl border border-[#D3CBBB] bg-white p-6 shadow-sm">
+        <form wire:submit="createUser" class="border border-[#D3CBBB] bg-white p-6">
             <h2 class="font-display text-lg font-bold text-[#17150F]">Crear usuario</h2>
             <p class="mt-1 text-sm text-[#5F584A]">El usuario podrá ingresar de inmediato con la contraseña asignada.</p>
 
@@ -308,7 +308,7 @@ new #[Title('Usuarios')] class extends Component {
     @endif
 
     @if ($editingId)
-        <form wire:submit="updateUser" class="rounded-xl border border-[#D3CBBB] bg-white p-6 shadow-sm">
+        <form wire:submit="updateUser" class="border border-[#D3CBBB] bg-white p-6">
             <h2 class="font-display text-lg font-bold text-[#17150F]">Editar usuario</h2>
             <p class="mt-1 text-sm text-[#5F584A]">Actualice el nombre o el correo de la cuenta.</p>
 
@@ -324,7 +324,7 @@ new #[Title('Usuarios')] class extends Component {
         </form>
     @endif
 
-    <section class="overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm">
+    <section class="overflow-hidden border border-[#D3CBBB] bg-white">
         <div class="flex flex-col gap-3 border-b border-[#E3DED3] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-2">
                 <h2 class="font-display text-lg font-bold text-[#17150F]">Cuentas</h2>

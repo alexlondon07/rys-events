@@ -49,13 +49,13 @@
                 } catch (exception) {}
             },
         }">
-        <header class="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-            <div>
+        <header class="flex flex-col justify-between gap-5 border-b border-[#D8D1C2] pb-6 lg:flex-row lg:items-end">
+            <div class="border-l-2 border-[#C9A043] pl-4">
                 <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#7F5C12] hover:text-[#17150F]" wire:navigate>
                     <flux:icon.chevron-left class="size-4" /> Informes
                 </a>
                 <div class="mt-3 flex flex-wrap items-center gap-3">
-                    <h1 class="font-display text-3xl font-bold tracking-tight text-[#17150F]">{{ $report->contract_number }}</h1>
+                    <h1 class="font-display text-3xl font-bold tracking-[-0.03em] text-[#17150F]">{{ $report->contract_number }}</h1>
                     <span class="rounded-full bg-[#F6EEDB] px-3 py-1 text-xs font-semibold text-[#7F5C12]">
                         {{ $report->status === 'draft' ? 'Borrador' : 'Finalizado' }}
                     </span>
@@ -119,13 +119,13 @@
         </div>
         </div>
 
-        <section class="overflow-hidden rounded-xl border border-[#D3CBBB] bg-white shadow-sm">
+        <section class="overflow-hidden border border-[#D3CBBB] bg-white">
             <div class="grid sm:grid-cols-3 xl:grid-cols-6">
                 @foreach ($steps as $index => [$label, $complete, $detail])
                     <article class="relative border-b border-[#E3DED3] p-4 last:border-0 sm:border-e xl:border-b-0">
                         <div class="flex items-center gap-2.5">
                             <span @class([
-                                'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                            'flex size-7 shrink-0 items-center justify-center text-xs font-bold',
                                 'bg-[#2C7549] text-white' => $complete,
                                 'bg-[#17150F] text-white' => $index + 1 === $step,
                                 'bg-[#ECE8E0] text-[#5F584A]' => ! $complete && $index + 1 !== $step,
@@ -142,7 +142,7 @@
 
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
             <div class="space-y-6">
-                <section class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm">
+                <section class="border border-[#D3CBBB] bg-white p-6">
                     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#7F5C12]">Revisión antes de generar</p>
@@ -185,7 +185,7 @@
                 </section>
 
                 @foreach ([['Programación artística', $artisticItems, '#C9A043'], ['Técnico y logística', $technicalItems, '#17150F']] as [$sectionTitle, $sectionItems, $sectionAccent])
-                    <section class="overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm">
+                    <section class="overflow-hidden border border-[#D3CBBB] bg-white">
                         <div class="flex items-center justify-between gap-3 border-b border-[#E3DED3] bg-[#FBFAF6] px-5 py-3">
                             <div class="flex items-center gap-2.5">
                                 <span class="h-4 w-1 rounded-full" style="background-color: {{ $sectionAccent }}"></span>
@@ -219,7 +219,7 @@
                     </section>
                 @endforeach
 
-                <section class="overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm">
+                <section class="overflow-hidden border border-[#D3CBBB] bg-white">
                     <div class="flex items-center justify-between gap-3 border-b border-[#E3DED3] bg-[#FBFAF6] px-5 py-3">
                         <div class="flex items-center gap-2.5">
                             <span class="h-4 w-1 rounded-full bg-[#17150F]"></span>

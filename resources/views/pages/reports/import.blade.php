@@ -209,20 +209,22 @@ new #[Title('Importar desde Excel')] class extends Component {
 }; ?>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 py-4">
-        <header>
-            <p class="text-sm font-medium text-[#7F5C12]">Informes</p>
-            <h1 class="font-display mt-1 text-3xl font-semibold text-[#17150F]">Importar desde Excel</h1>
+        <header class="border-b border-[#D8D1C2] pb-6">
+            <div class="border-l-2 border-[#C9A043] pl-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7F5C12]">Control de carga</p>
+            <h1 class="font-display mt-1 text-3xl font-semibold tracking-[-0.025em] text-[#17150F]">Importar desde Excel</h1>
             <p class="mt-2 text-[#5F584A]">
                 {{ $result ? 'Cambios aplicados. Puede continuar completando el informe.' : ($preview ? 'Revise lo que va a cambiar. Nada se guarda hasta que confirme.' : 'Suba la plantilla oficial para crear o actualizar un informe por partes.') }}
             </p>
+            </div>
         </header>
 
-        <ol class="grid overflow-hidden rounded-xl border border-[#D3CBBB] bg-white sm:grid-cols-3">
+        <ol class="grid overflow-hidden border border-[#D3CBBB] bg-white sm:grid-cols-3">
             @foreach ([['Subir archivo', 1], ['Revisar cambios', 2], ['Aplicar', 3]] as [$label, $step])
                 @php($current = $result ? 3 : ($preview ? 2 : 1))
                 <li class="flex items-center gap-3 border-b border-[#E3DED3] px-5 py-4 last:border-0 sm:border-b-0 sm:border-e">
                     <span @class([
-                        'flex size-7 items-center justify-center rounded-full text-xs font-bold',
+                        'flex size-7 items-center justify-center text-xs font-bold',
                         'bg-[#17150F] text-white' => $current === $step,
                         'bg-[#E4F1E8] text-[#2C7549]' => $current > $step,
                         'bg-[#ECE8E0] text-[#5F584A]' => $current < $step,
@@ -233,11 +235,11 @@ new #[Title('Importar desde Excel')] class extends Component {
         </ol>
 
         @if (! $preview && ! $result)
-            <section class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm sm:p-8">
+            <section class="border border-[#D3CBBB] bg-white p-6 sm:p-8">
                 <div class="grid gap-6 lg:grid-cols-[1fr_260px]">
                     <form wire:submit="generatePreview" class="space-y-5">
-                        <label class="flex min-h-64 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#D3CBBB] bg-[#F9F8F4] px-6 text-center transition hover:border-[#C9A043] hover:bg-[#F6EEDB]/40">
-                            <span class="flex size-12 items-center justify-center rounded-full bg-[#F6EEDB] text-[#7F5C12]">
+                        <label class="flex min-h-64 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D3CBBB] bg-[#F9F8F4] px-6 text-center transition hover:border-[#C9A043] hover:bg-[#F6EEDB]/40">
+                            <span class="flex size-12 items-center justify-center border border-[#E1C979] bg-[#F6EEDB] text-[#7F5C12]">
                                 <flux:icon.arrow-up-tray class="size-6" />
                             </span>
                             <span class="font-display mt-4 text-lg font-semibold">Seleccione la plantilla llena</span>
@@ -264,7 +266,7 @@ new #[Title('Importar desde Excel')] class extends Component {
                         </div>
                     </form>
 
-                    <aside class="rounded-xl border border-[#E8D6A8] bg-[#F6EEDB] p-5">
+                    <aside class="border border-[#E8D6A8] bg-[#F6EEDB] p-5">
                         <h2 class="font-display font-semibold text-[#7F5C12]">Carga por partes</h2>
                         <ul class="mt-4 space-y-3 text-sm leading-6 text-[#5F584A]">
                             <li>El contrato identifica el informe.</li>
@@ -296,7 +298,7 @@ new #[Title('Importar desde Excel')] class extends Component {
                 </div>
             @endif
 
-            <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <section class="grid gap-px overflow-hidden border border-[#D3CBBB] bg-[#D3CBBB] sm:grid-cols-2 lg:grid-cols-5">
                 @foreach ([
                     ['new', 'Ítems nuevos', '#E4F1E8', '#2C7549'],
                     ['changed', 'Ítems que cambian', '#F6EEDB', '#7F5C12'],
@@ -304,14 +306,14 @@ new #[Title('Importar desde Excel')] class extends Component {
                     ['conflicts', 'Conflictos', '#FBEEDA', '#8F520A'],
                     ['issues', 'Errores y avisos', '#F9E3E0', '#A8261D'],
                 ] as [$key, $label, $background, $color])
-                    <article class="rounded-xl border border-[#E3DED3] bg-white p-4">
+                    <article class="bg-white p-4">
                         <strong class="font-display text-2xl" style="color: {{ $color }}">{{ $preview['counts'][$key] }}</strong>
                         <p class="mt-1 text-sm text-[#5F584A]">{{ $label }}</p>
                     </article>
                 @endforeach
             </section>
 
-            <section class="overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm">
+            <section class="overflow-hidden border border-[#D3CBBB] bg-white">
                 <div class="border-b border-[#E3DED3] px-5 py-4">
                     <h2 class="font-display text-lg font-semibold">Cambios detectados</h2>
                 </div>

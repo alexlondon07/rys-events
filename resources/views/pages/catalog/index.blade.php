@@ -131,10 +131,10 @@ new #[Title('Catálogo de ítems')] class extends Component {
 }; ?>
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-6 py-4">
-    <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-            <p class="text-sm font-semibold text-[#7F5C12]">Biblioteca</p>
-            <h1 class="font-display mt-1 text-3xl font-bold tracking-tight text-[#17150F]">Catálogo de ítems</h1>
+    <header class="flex flex-col justify-between gap-4 border-b border-[#D8D1C2] pb-6 sm:flex-row sm:items-end">
+        <div class="border-l-2 border-[#C9A043] pl-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7F5C12]">Biblioteca</p>
+            <h1 class="font-display mt-1 text-3xl font-bold tracking-[-0.025em] text-[#17150F]">Catálogo de ítems</h1>
             <p class="mt-2 text-[#5F584A]">Especificaciones y narrativas reutilizables para importar a los informes.</p>
         </div>
         <flux:button wire:click="create" variant="primary" icon="plus">Nuevo ítem</flux:button>
