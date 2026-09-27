@@ -29,4 +29,9 @@ if [ "${APP_ENV:-production}" = "production" ]; then
     php artisan view:cache
 fi
 
+# view:cache y Livewire pueden crear directorios durante el arranque. El FPM
+# que atiende las solicitudes corre como www-data, así que los deja escribibles
+# también después de calentar las cachés.
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
 exec "$@"
