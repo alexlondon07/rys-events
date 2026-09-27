@@ -96,9 +96,11 @@
                         <a href="{{ route('reports.public.show', $report->public_share_token) }}" target="_blank" class="inline-flex items-center gap-2 border border-[#C9A043] bg-[#F6EEDB] px-4 py-2 text-sm font-semibold text-[#7F5C12]">
                             <flux:icon.arrow-top-right-on-square class="size-4" /> Portal del cliente
                         </a>
-                        <form method="POST" action="{{ route('reports.public.revoke', $report) }}">
+                        <form id="revoke-public-report-{{ $report->id }}" method="POST" action="{{ route('reports.public.revoke', $report) }}">
                             @csrf @method('DELETE')
-                            <flux:button type="submit" variant="ghost" icon="no-symbol" wire:confirm="¿Revocar el acceso público de este informe?">Revocar enlace</flux:button>
+                            <x-confirm-action name="revoke-public-report-modal-{{ $report->id }}" action="" form="revoke-public-report-{{ $report->id }}" title="Revocar enlace público" message="El cliente ya no podrá consultar este informe con el enlace actual." confirm-label="Revocar enlace">
+                                <x-slot:trigger><flux:button type="button" variant="ghost" icon="no-symbol">Revocar enlace</flux:button></x-slot:trigger>
+                            </x-confirm-action>
                         </form>
                     @else
                         <form method="POST" action="{{ route('reports.public.create', $report) }}">

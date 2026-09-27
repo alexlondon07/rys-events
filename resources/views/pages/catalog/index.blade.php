@@ -208,7 +208,9 @@ new #[Title('Catálogo de ítems')] class extends Component {
                             {{ $item->active ? 'Desactivar' : 'Activar' }}
                         </flux:button>
                         <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="startEdit({{ $item->id }})">Editar</flux:button>
-                        <flux:button size="sm" variant="ghost" icon="trash" wire:click="delete({{ $item->id }})" wire:confirm="¿Eliminar {{ $item->category_label }} del catálogo?">Eliminar</flux:button>
+                        <x-confirm-action name="delete-catalog-item-{{ $item->id }}" action="delete({{ $item->id }})" title="Eliminar ítem" message="¿Eliminar {{ $item->category_label }} del catálogo?" confirm-label="Eliminar ítem">
+                            <x-slot:trigger><flux:button size="sm" variant="ghost" icon="trash">Eliminar</flux:button></x-slot:trigger>
+                        </x-confirm-action>
                     </div>
                 </article>
             @empty

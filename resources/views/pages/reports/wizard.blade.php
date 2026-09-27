@@ -943,7 +943,9 @@ new #[Title('Editar informe')] class extends Component {
                             </label>
                             <flux:button size="sm" variant="primary" icon="arrow-up-tray" wire:click="uploadCover" wire:loading.attr="disabled" wire:target="uploadCover">Subir</flux:button>
                             @if ($existingCover || $cover)
-                                <flux:button size="sm" variant="ghost" icon="trash" wire:click="removeCover" wire:confirm="¿Quitar la foto de portada?">Quitar</flux:button>
+                                <x-confirm-action name="remove-cover" action="removeCover" title="Quitar foto de portada" message="¿Quitar la foto de portada?" confirm-label="Quitar foto">
+                                    <x-slot:trigger><flux:button size="sm" variant="ghost" icon="trash">Quitar</flux:button></x-slot:trigger>
+                                </x-confirm-action>
                             @endif
                         </div>
 
@@ -1008,7 +1010,9 @@ new #[Title('Editar informe')] class extends Component {
                         </span>
                         <flux:button size="sm" variant="ghost" icon="chevron-up" wire:click="moveItem({{ $index }}, -1)" aria-label="Subir ítem" />
                         <flux:button size="sm" variant="ghost" icon="chevron-down" wire:click="moveItem({{ $index }}, 1)" aria-label="Bajar ítem" />
-                        <flux:button size="sm" variant="ghost" icon="trash" wire:click="removeItem({{ $index }})" wire:confirm="¿Eliminar el ítem {{ $item['ref'] }}?">Eliminar</flux:button>
+                        <x-confirm-action name="remove-item-{{ $item['id'] }}" action="removeItem({{ $index }})" title="Eliminar ítem" message="¿Eliminar el ítem {{ $item['ref'] }}?" confirm-label="Eliminar ítem">
+                            <x-slot:trigger><flux:button size="sm" variant="ghost" icon="trash">Eliminar</flux:button></x-slot:trigger>
+                        </x-confirm-action>
                     </div>
                 </div>
 
@@ -1057,9 +1061,13 @@ new #[Title('Editar informe')] class extends Component {
                                             <span wire:sort:handle class="cursor-grab rounded-full bg-[#17150F]/80 p-1 text-white" title="Arrastrar para reordenar" aria-label="Arrastrar para reordenar">
                                                 <flux:icon.bars-3 class="size-3.5" />
                                             </span>
-                                            <button type="button" wire:click="removePhoto({{ $index }}, {{ $photo['id'] }})" wire:confirm="¿Eliminar esta foto?" class="rounded-full bg-[#17150F]/80 p-1 text-white" aria-label="Eliminar foto">
-                                                <flux:icon.x-mark class="size-3.5" />
-                                            </button>
+                                            <x-confirm-action name="remove-photo-{{ $photo['id'] }}" action="removePhoto({{ $index }}, {{ $photo['id'] }})" title="Eliminar foto" message="¿Eliminar esta foto?" confirm-label="Eliminar foto">
+                                                <x-slot:trigger>
+                                                    <button type="button" class="rounded-full bg-[#17150F]/80 p-1 text-white" aria-label="Eliminar foto">
+                                                        <flux:icon.x-mark class="size-3.5" />
+                                                    </button>
+                                                </x-slot:trigger>
+                                            </x-confirm-action>
                                         </div>
                                     </div>
                                     <input

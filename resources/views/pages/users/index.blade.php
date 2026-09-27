@@ -401,15 +401,9 @@ new #[Title('Usuarios')] class extends Component {
                                         <flux:button size="sm" variant="ghost" :icon="$user->isActive() ? 'no-symbol' : 'check-circle'" wire:click="toggleActive({{ $user->id }})">
                                             {{ $user->isActive() ? 'Deshabilitar' : 'Habilitar' }}
                                         </flux:button>
-                                        <flux:button
-                                            size="sm"
-                                            variant="ghost"
-                                            icon="trash"
-                                            wire:click="deleteUser({{ $user->id }})"
-                                            wire:confirm="¿Eliminar a {{ $user->name }}? Esta acción no se puede deshacer."
-                                        >
-                                            Eliminar
-                                        </flux:button>
+                                        <x-confirm-action name="delete-user-{{ $user->id }}" action="deleteUser({{ $user->id }})" title="Eliminar usuario" message="¿Eliminar a {{ $user->name }}? Esta acción no se puede deshacer." confirm-label="Eliminar usuario">
+                                            <x-slot:trigger><flux:button size="sm" variant="ghost" icon="trash">Eliminar</flux:button></x-slot:trigger>
+                                        </x-confirm-action>
                                     @endif
                                 </div>
                             </td>

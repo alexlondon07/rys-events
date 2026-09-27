@@ -182,7 +182,9 @@ new #[Title('Plantillas de texto')] class extends Component {
                             {{ $template->active ? 'Desactivar' : 'Activar' }}
                         </flux:button>
                         <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="startEdit({{ $template->id }})">Editar</flux:button>
-                        <flux:button size="sm" variant="ghost" icon="trash" wire:click="delete({{ $template->id }})" wire:confirm="¿Eliminar la plantilla {{ $template->name }}?">Eliminar</flux:button>
+                        <x-confirm-action name="delete-template-{{ $template->id }}" action="delete({{ $template->id }})" title="Eliminar plantilla" message="¿Eliminar la plantilla {{ $template->name }}?" confirm-label="Eliminar plantilla">
+                            <x-slot:trigger><flux:button size="sm" variant="ghost" icon="trash">Eliminar</flux:button></x-slot:trigger>
+                        </x-confirm-action>
                     </div>
                 </article>
             @empty

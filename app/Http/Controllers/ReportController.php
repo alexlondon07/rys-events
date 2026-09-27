@@ -29,6 +29,8 @@ class ReportController extends Controller
 {
     private const EXCEL_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
+    private const PDF_MIME_TYPE = 'application/pdf';
+
     public function show(Request $request, Report $report): View
     {
         Gate::authorize('view', $report);
@@ -198,7 +200,9 @@ class ReportController extends Controller
 
         abort_unless($report->pdf_path && Storage::disk('local')->exists($report->pdf_path), 404);
 
-        return Storage::disk('local')->download($report->pdf_path, "informe-{$report->contract_number}.pdf");
+        return Storage::disk('local')->download($report->pdf_path, "informe-{$report->contract_number}.pdf", [
+            'Content-Type' => self::PDF_MIME_TYPE,
+        ]);
     }
 
     /**

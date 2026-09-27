@@ -426,15 +426,17 @@ new #[Title('Informes')] class extends Component {
                                             Editar
                                         </flux:button>
                                         <flux:button size="sm" variant="ghost" icon="document-duplicate" wire:click="duplicateReport({{ $report->id }})" title="Duplicar" aria-label="Duplicar" />
-                                        <flux:button
-                                            size="sm"
-                                            variant="ghost"
-                                            icon="trash"
-                                            wire:click="deleteReport({{ $report->id }})"
-                                            wire:confirm="¿Eliminar el informe {{ $report->contract_number }}? Se puede restaurar desde la base de datos."
-                                            title="Eliminar"
-                                            aria-label="Eliminar"
-                                        />
+                                        <x-confirm-action
+                                            name="delete-report-{{ $report->id }}"
+                                            action="deleteReport({{ $report->id }})"
+                                            title="Eliminar informe"
+                                            message="¿Eliminar el informe {{ $report->contract_number }}? Se puede restaurar desde la base de datos."
+                                            confirm-label="Eliminar informe"
+                                        >
+                                            <x-slot:trigger>
+                                                <flux:button size="sm" variant="ghost" icon="trash" title="Eliminar" aria-label="Eliminar" />
+                                            </x-slot:trigger>
+                                        </x-confirm-action>
                                     </div>
                                 </td>
                             </tr>

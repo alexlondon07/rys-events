@@ -73,7 +73,8 @@ class ReportPdfTest extends TestCase
 
         $this->actingAs($this->user)
             ->get(route('reports.pdf.download', $this->report))
-            ->assertOk();
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_the_watermark_is_only_enabled_for_drafts(): void

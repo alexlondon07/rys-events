@@ -45,7 +45,7 @@
                 </flux:sidebar.group>
 
                 <flux:sidebar.group heading="Ayuda" class="grid">
-                    <flux:sidebar.item icon="book-open" :href="route('manual')" :current="request()->routeIs('manual')" wire:navigate>
+                    <flux:sidebar.item icon="book-open" :href="route('manual')" :current="request()->routeIs('manual')">
                         Manual de uso
                     </flux:sidebar.item>
                 </flux:sidebar.group>
