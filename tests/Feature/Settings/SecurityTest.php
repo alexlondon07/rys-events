@@ -93,6 +93,23 @@ class SecurityTest extends TestCase
         ]);
     }
 
+    public function test_two_factor_setup_generates_the_authenticator_data(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test('pages::settings.two-factor-setup-modal', [
+            'requiresConfirmation' => true,
+        ])
+            ->call('startTwoFactorSetup')
+            ->assertHasNoErrors()
+            ->assertSet('qrCodeSvg', fn (string $value): bool => $value !== '')
+            ->assertSet('manualSetupKey', fn (string $value): bool => $value !== '');
+
+        $this->assertNotNull($user->fresh()->two_factor_secret);
+    }
+
     public function test_password_can_be_updated(): void
     {
         $user = User::factory()->create([
