@@ -60,6 +60,16 @@ class PublicReportPortalTest extends TestCase
         $this->assertNull($this->report->fresh()->public_share_token);
     }
 
+    public function test_draft_reports_explain_when_the_client_portal_is_available(): void
+    {
+        $this->report->update(['status' => 'draft']);
+
+        $this->actingAs($this->user)
+            ->get(route('reports.show', $this->report))
+            ->assertOk()
+            ->assertSee('Portal del cliente · disponible al finalizar');
+    }
+
     public function test_revoked_portal_link_is_not_available(): void
     {
         $this->report->forceFill(['public_share_token' => str_repeat('a', 64)])->save();

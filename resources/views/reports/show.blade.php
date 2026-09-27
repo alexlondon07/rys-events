@@ -108,6 +108,10 @@
                             <flux:button type="submit" variant="outline" icon="share">Crear enlace para cliente</flux:button>
                         </form>
                     @endif
+                @else
+                    <span class="inline-flex items-center gap-2 border border-dashed border-[#D3CBBB] bg-[#FAF9F6] px-4 py-2 text-sm font-semibold text-[#5F584A]" title="Finalice el informe para generar un enlace privado para el cliente.">
+                        <flux:icon.share class="size-4 text-[#7F5C12]" /> Portal del cliente · disponible al finalizar
+                    </span>
                 @endif
                 @if (app(\App\Services\Drive\DriveClient::class)->isConfigured())
                     <form method="POST" action="{{ route('reports.drive.sync', $report) }}">
