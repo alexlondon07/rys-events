@@ -36,6 +36,6 @@ fi
 
 # El FPM atiende como www-data. Si esto falla, el contenedor no inicia en un
 # estado que más tarde produciría errores 500 en componentes Livewire.
-run_as_app_user 'test -w storage/framework/views/livewire && test -w storage/framework/views/blaze && test -w bootstrap/cache'
+run_as_app_user 'mkdir -p storage/framework/views/livewire storage/framework/views/blaze && test -w storage/framework/views/livewire && test -w storage/framework/views/blaze && test -w bootstrap/cache'
 
 exec "$@"
