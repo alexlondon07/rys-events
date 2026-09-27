@@ -108,15 +108,17 @@ new #[Title('Empresa')] class extends Component {
 }; ?>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 py-4">
-    <header>
-        <p class="text-sm font-semibold text-[#7F5C12]">Administración</p>
-        <h1 class="font-display mt-1 text-3xl font-bold tracking-tight text-[#17150F]">Configuración de la empresa</h1>
+    <header class="border-b border-[#D8D1C2] pb-6">
+        <div class="border-l-2 border-[#C9A043] pl-4">
+        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7F5C12]">Administración</p>
+        <h1 class="font-display mt-1 text-3xl font-bold tracking-[-0.025em] text-[#17150F]">Configuración de la empresa</h1>
         <p class="mt-2 text-[#5F584A]">Estos datos aparecen en la portada, el encabezado y la firma del informe.</p>
+        </div>
     </header>
 
     <form wire:submit="save" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div class="space-y-6">
-            <section class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm">
+            <section class="border border-[#D3CBBB] bg-white p-6">
                 <h2 class="font-display text-lg font-bold text-[#17150F]">Identidad</h2>
                 <p class="mt-1 text-sm text-[#5F584A]">Nombre legal y NIT de Grupo RYS.</p>
 
@@ -128,7 +130,7 @@ new #[Title('Empresa')] class extends Component {
                 </div>
             </section>
 
-            <section class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm">
+            <section class="border border-[#D3CBBB] bg-white p-6">
                 <h2 class="font-display text-lg font-bold text-[#17150F]">Representante legal</h2>
                 <p class="mt-1 text-sm text-[#5F584A]">Quien firma el informe al cierre.</p>
 
@@ -138,7 +140,7 @@ new #[Title('Empresa')] class extends Component {
                 </div>
             </section>
 
-            <section class="rounded-xl border border-[#E3DED3] bg-white p-6 shadow-sm">
+            <section class="border border-[#D3CBBB] bg-white p-6">
                 <h2 class="font-display text-lg font-bold text-[#17150F]">Marca</h2>
                 <p class="mt-1 text-sm text-[#5F584A]">Logo del encabezado y firma escaneada. Formatos de imagen, máximo 2 MB.</p>
 

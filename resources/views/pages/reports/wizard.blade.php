@@ -794,13 +794,13 @@ new #[Title('Editar informe')] class extends Component {
 }; ?>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 py-4">
-    <header class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-        <div>
+    <header class="flex flex-col justify-between gap-4 border-b border-[#D8D1C2] pb-6 lg:flex-row lg:items-end">
+        <div class="border-l-2 border-[#C9A043] pl-4">
             <a href="{{ route('reports.show', $reportId) }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#7F5C12] hover:text-[#17150F]" wire:navigate>
                 <flux:icon.chevron-left class="size-4" /> Volver a la revisión
             </a>
             <div class="mt-3 flex flex-wrap items-center gap-3">
-                <h1 class="font-display text-3xl font-bold tracking-tight text-[#17150F]">Editar informe</h1>
+                <h1 class="font-display text-3xl font-bold tracking-[-0.025em] text-[#17150F]">Editar informe</h1>
                 <span @class([
                     'rounded-full px-3 py-1 text-xs font-semibold',
                     'bg-[#E7F3EC] text-[#2C7549]' => $status === 'final',
@@ -822,7 +822,7 @@ new #[Title('Editar informe')] class extends Component {
         </div>
     </header>
 
-    <nav class="flex overflow-x-auto rounded-xl border border-[#D3CBBB] bg-white sm:grid sm:grid-cols-3 sm:overflow-hidden lg:grid-cols-6">
+    <nav class="flex overflow-x-auto border border-[#D3CBBB] bg-white sm:grid sm:grid-cols-3 sm:overflow-hidden lg:grid-cols-6">
         @foreach ([1 => 'Contrato', 2 => 'Evento', 3 => 'Artísticos', 4 => 'Técnico', 5 => 'Cierre', 6 => 'Revisión'] as $number => $label)
             <button
                 type="button"

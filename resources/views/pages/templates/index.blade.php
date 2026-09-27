@@ -115,17 +115,17 @@ new #[Title('Plantillas de texto')] class extends Component {
 }; ?>
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-6 py-4">
-    <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-            <p class="text-sm font-semibold text-[#7F5C12]">Biblioteca</p>
-            <h1 class="font-display mt-1 text-3xl font-bold tracking-tight text-[#17150F]">Plantillas de texto</h1>
+    <header class="flex flex-col justify-between gap-4 border-b border-[#D8D1C2] pb-6 sm:flex-row sm:items-end">
+        <div class="border-l-2 border-[#C9A043] pl-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7F5C12]">Biblioteca</p>
+            <h1 class="font-display mt-1 text-3xl font-bold tracking-[-0.025em] text-[#17150F]">Plantillas de texto</h1>
             <p class="mt-2 text-[#5F584A]">Textos reutilizables con variables para no reescribir cada informe.</p>
         </div>
         <flux:button wire:click="create" variant="primary" icon="plus">Nueva plantilla</flux:button>
     </header>
 
     @if ($showForm)
-        <form wire:submit="save" class="rounded-xl border border-[#D3CBBB] bg-white p-6 shadow-sm">
+        <form wire:submit="save" class="border border-[#D3CBBB] bg-white p-6">
             <h2 class="font-display text-lg font-bold text-[#17150F]">{{ $editingId ? 'Editar plantilla' : 'Nueva plantilla' }}</h2>
 
             <div class="mt-5 grid gap-5 sm:grid-cols-2">
@@ -158,7 +158,7 @@ new #[Title('Plantillas de texto')] class extends Component {
         </form>
     @endif
 
-    <section class="overflow-hidden rounded-xl border border-[#E3DED3] bg-white shadow-sm">
+    <section class="overflow-hidden border border-[#D3CBBB] bg-white">
         <div class="flex items-center gap-2 border-b border-[#E3DED3] px-5 py-4">
             <h2 class="font-display text-lg font-bold text-[#17150F]">Plantillas</h2>
             <span class="rounded-full bg-[#ECE8E0] px-2.5 py-1 text-xs font-semibold text-[#5F584A]">{{ $this->templates->count() }}</span>
