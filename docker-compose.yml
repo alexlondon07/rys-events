@@ -29,7 +29,7 @@ services:
     volumes:
       - storage:/var/www/html/storage/app
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost/login"]
+      test: ["CMD-SHELL", "su -s /bin/sh www-data -c 'test -w /var/www/html/storage/framework/views/livewire && test -w /var/www/html/storage/framework/views/blaze && test -w /var/www/html/bootstrap/cache' && curl -fsS http://localhost/login >/dev/null"]
       interval: 15s
       timeout: 5s
       retries: 10

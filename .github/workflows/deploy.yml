@@ -35,6 +35,7 @@ jobs:
       - run: |
           cp .env.example .env
           php artisan key:generate
+      - run: sh -n docker/entrypoint.sh
       - run: npm ci && npm run build
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'

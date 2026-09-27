@@ -39,7 +39,8 @@ COPY . .
 
 RUN mkdir -p \
         storage/app/public storage/app/private \
-        storage/framework/cache/data storage/framework/sessions storage/framework/views \
+        storage/framework/cache/data storage/framework/sessions \
+        storage/framework/views storage/framework/views/livewire storage/framework/views/blaze \
         storage/logs bootstrap/cache \
     && composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && chown -R www-data:www-data storage bootstrap/cache

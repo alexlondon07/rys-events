@@ -6,9 +6,14 @@ cd /var/www/html
 # Carpetas escribibles por www-data (storage va en un volumen persistente).
 mkdir -p \
     storage/app/public storage/app/private \
-    storage/framework/cache/data storage/framework/sessions storage/framework/views \
+    storage/framework/cache/data storage/framework/sessions \
+    storage/framework/views storage/framework/views/livewire storage/framework/views/blaze \
     storage/logs bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
+run_as_app_user() {
+    su -s /bin/sh www-data -c "$1"
+}
 
 # Enlace público de storage (idempotente).
 php artisan storage:link >/dev/null 2>&1 || true
@@ -24,14 +29,13 @@ fi
 
 # Cachés de producción.
 if [ "${APP_ENV:-production}" = "production" ]; then
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
+    run_as_app_user 'php artisan config:cache'
+    run_as_app_user 'php artisan route:cache'
+    run_as_app_user 'php artisan view:cache'
 fi
 
-# view:cache y Livewire pueden crear directorios durante el arranque. El FPM
-# que atiende las solicitudes corre como www-data, así que los deja escribibles
-# también después de calentar las cachés.
-chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+# El FPM atiende como www-data. Si esto falla, el contenedor no inicia en un
+# estado que más tarde produciría errores 500 en componentes Livewire.
+run_as_app_user 'test -w storage/framework/views/livewire && test -w storage/framework/views/blaze && test -w bootstrap/cache'
 
 exec "$@"
