@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\GenerateReportAiDraft;
 use App\Jobs\GenerateReportPdf;
 use App\Jobs\SyncReportDrivePhotos;
 use App\Models\CompanySetting;
 use App\Models\Report;
+use App\Models\ReportAiRun;
 use App\Models\ReportImport;
 use App\Models\ReportItem;
 use App\Services\Drive\DriveClient;
 use App\Services\Photos\CollageBuilder;
+use App\Services\Reports\ReportAiReportService;
 use App\Services\Reports\ReportExcelExporter;
 use App\Services\Text\TextTemplateRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
@@ -20,6 +23,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -178,6 +182,117 @@ class ReportController extends Controller
     }
 
     /**
+     * Encola un borrador del agente IA sin cambiar el informe existente.
+     */
+    public function generateAiDraft(Report $report, ReportAiReportService $service): RedirectResponse
+    {
+        Gate::authorize('update', $report);
+        abort_unless(config('reports.ai.enabled'), 404);
+
+        if (! filled(config('reports.ai.api_key'))) {
+            return back()->with('error', 'El agente IA está activo, pero falta configurar OPENAI_API_KEY.');
+        }
+
+        $run = DB::transaction(function () use ($report, $service): ?ReportAiRun {
+            $lockedReport = Report::query()->lockForUpdate()->findOrFail($report->id);
+            $latest = $lockedReport->aiRuns()->first();
+            if ($latest && in_array($latest->status, ['queued', 'processing'], true)) {
+                return null;
+            }
+
+            $lockedReport->load(['municipality.department', 'items.photos']);
+
+            return ReportAiRun::query()->create([
+                'report_id' => $lockedReport->id,
+                'user_id' => auth()->id(),
+                'status' => 'queued',
+                'model' => (string) config('reports.ai.model'),
+                'prompt_version' => (string) config('reports.ai.prompt_version', ReportAiReportService::PROMPT_VERSION),
+                'source_hash' => $service->sourceHash($lockedReport),
+            ]);
+        });
+
+        if ($run === null) {
+            return back()->with('status', 'Ya hay un borrador IA en proceso.');
+        }
+
+        GenerateReportAiDraft::dispatch($run);
+
+        return back()->with('status', 'El borrador IA se está generando en segundo plano.');
+    }
+
+    /**
+     * Estado y resultado limitado para el panel del informe.
+     */
+    public function aiStatus(Report $report): JsonResponse
+    {
+        Gate::authorize('view', $report);
+        abort_unless(config('reports.ai.enabled'), 404);
+
+        $run = $report->aiRuns()->first();
+        $completedAt = $run?->completed_at;
+
+        return response()->json([
+            'status' => $run === null ? 'idle' : $run->status,
+            'error' => $run?->error,
+            'run_id' => $run?->id,
+            'completed_at' => $completedAt?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Aplica únicamente los textos que el usuario aprobó desde el último borrador.
+     */
+    public function approveAiDraft(Report $report, ReportAiRun $run, ReportAiReportService $service): RedirectResponse
+    {
+        Gate::authorize('update', $report);
+        abort_unless(config('reports.ai.enabled'), 404);
+        abort_unless($run->report_id === $report->id && $run->status === 'ready', 404);
+
+        if (! hash_equals($run->source_hash, $service->sourceHash($report))) {
+            return back()->with('error', 'El informe cambió después de generar el borrador. Genere una nueva revisión IA antes de aprobarlo.');
+        }
+
+        $result = $run->result ?? [];
+        $reportDraft = is_array($result['report'] ?? null) ? $result['report'] : [];
+        $allowedReportFields = ['introduction', 'event_description', 'conclusion'];
+        $reportChanges = collect($allowedReportFields)
+            ->mapWithKeys(fn (string $field): array => [$field => trim((string) ($reportDraft[$field] ?? ''))])
+            ->filter(fn (string $value): bool => $value !== '')
+            ->all();
+
+        DB::transaction(function () use ($report, $run, $reportChanges, $result): void {
+            if ($reportChanges !== []) {
+                $report->update($reportChanges);
+            }
+
+            $itemsByRef = $report->items()->get()->keyBy('ref');
+            $suggestions = is_array($result['items'] ?? null) ? $result['items'] : [];
+            foreach ($suggestions as $suggestion) {
+                if (! is_array($suggestion)) {
+                    continue;
+                }
+
+                $ref = trim((string) ($suggestion['ref'] ?? ''));
+                $narrative = trim((string) ($suggestion['revised_narrative'] ?? ''));
+                $item = $itemsByRef->get($ref);
+
+                if ($item && $narrative !== '') {
+                    $item->update(['narrative' => $narrative]);
+                }
+            }
+
+            $run->update([
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+        });
+
+        return back()->with('status', 'El borrador IA fue aprobado y aplicado al informe.');
+    }
+
+    /**
      * Estado de la generación del PDF, consultado por la pantalla del informe.
      */
     public function pdfStatus(Report $report): JsonResponse
@@ -236,11 +351,18 @@ class ReportController extends Controller
 
     private function loadReport(Report $report): Report
     {
-        return $report->load([
+        $relations = [
             'municipality.department',
             'items.photos',
             'imports.user',
             'imports.activityLogs',
-        ]);
+        ];
+
+        if (config('reports.ai.enabled')) {
+            $relations[] = 'aiRuns.user';
+            $relations[] = 'aiRuns.approver';
+        }
+
+        return $report->load($relations);
     }
 }

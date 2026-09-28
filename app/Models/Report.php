@@ -81,6 +81,12 @@ class Report extends Model
         return $this->hasMany(ReportActivityLog::class)->latest('id');
     }
 
+    /** @return HasMany<ReportAiRun, $this> */
+    public function aiRuns(): HasMany
+    {
+        return $this->hasMany(ReportAiRun::class)->latest('id');
+    }
+
     /**
      * URL de la foto de portada del informe.
      *

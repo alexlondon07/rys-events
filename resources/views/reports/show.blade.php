@@ -4,6 +4,8 @@
     $photoCount = $report->items->sum(fn ($item) => $item->photos->count());
     $missingPhotos = $report->items->filter(fn ($item) => $item->photos->isEmpty());
     $missingNarratives = $report->items->filter(fn ($item) => blank($item->narrative));
+    $latestAiRun = config('reports.ai.enabled') ? $report->aiRuns->first() : null;
+    $aiResult = $latestAiRun?->result ?? [];
     $step = $report->inferredCurrentStep();
     $steps = [
         ['Contrato', filled($report->contract_number) && filled($report->municipality_id), $report->contract_number],
@@ -88,6 +90,15 @@
                         <span x-show="busy" x-cloak>Generando…</span>
                     </flux:button>
                 </form>
+                @if (config('reports.ai.enabled'))
+                    <form method="POST" action="{{ route('reports.ai.generate', $report) }}">
+                        @csrf
+                        <flux:button type="submit" variant="outline" icon="sparkles"
+                            :disabled="in_array($latestAiRun?->status, ['queued', 'processing'], true)">
+                            {{ in_array($latestAiRun?->status, ['queued', 'processing'], true) ? 'Analizando…' : 'Generar borrador IA' }}
+                        </flux:button>
+                    </form>
+                @endif
                 <flux:button :href="route('reports.excel', $report)" variant="outline" icon="table-cells">
                     Descargar Excel
                 </flux:button>
@@ -205,6 +216,122 @@
                         @endif
                     </div>
                 </section>
+
+                @if (config('reports.ai.enabled'))
+                    <section x-data="{
+                        status: @js($latestAiRun?->status ?? 'idle'),
+                        timer: null,
+                        get busy() { return this.status === 'queued' || this.status === 'processing'; },
+                        init() { if (this.busy) this.start(); },
+                        start() {
+                            if (this.timer) return;
+                            this.timer = setInterval(() => this.check(), 4000);
+                        },
+                        async check() {
+                            try {
+                                const response = await fetch(@js(route('reports.ai.status', $report)), { headers: { 'Accept': 'application/json' } });
+                                if (! response.ok) return;
+                                const data = await response.json();
+                                this.status = data.status;
+                                if (data.status === 'ready' || data.status === 'failed') {
+                                    clearInterval(this.timer);
+                                    window.location.reload();
+                                }
+                            } catch (exception) {}
+                        },
+                    }" class="overflow-hidden border border-[#D7C7F2] bg-[#FCFAFF]">
+                        <div class="flex flex-col justify-between gap-4 border-b border-[#E8DDF7] px-6 py-5 sm:flex-row sm:items-start">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#7042A5]">Agente IA de informes</p>
+                                <h2 class="font-display mt-2 text-xl font-bold text-[#17150F]">Borrador técnico revisable</h2>
+                                <p class="mt-1 max-w-2xl text-sm text-[#5F584A]">Revisa redacción, pendientes, hallazgos y recomendaciones. Nada se aplica al informe hasta que un usuario lo apruebe.</p>
+                            </div>
+                            <span class="w-fit rounded-full bg-[#EEE5FA] px-3 py-1.5 text-xs font-semibold text-[#7042A5]">{{ $latestAiRun?->model ?? config('reports.ai.model') }}</span>
+                        </div>
+
+                        @if ($latestAiRun?->status === 'queued' || $latestAiRun?->status === 'processing')
+                            <div class="flex items-center gap-3 px-6 py-5 text-sm font-semibold text-[#7042A5]" x-show="busy">
+                                <flux:icon.arrow-path class="size-5 animate-spin" /> El agente está preparando el borrador…
+                            </div>
+                        @elseif ($latestAiRun?->status === 'failed')
+                            <div class="m-5 flex items-start gap-3 rounded-lg border border-[#F1C4BE] bg-[#F9E3E0] p-4 text-sm text-[#A8261D]">
+                                <flux:icon.exclamation-triangle class="mt-0.5 size-5 shrink-0" />
+                                <div><p class="font-semibold">No se pudo generar el borrador IA.</p><p class="mt-1">{{ $latestAiRun->error }}</p></div>
+                            </div>
+                        @elseif ($latestAiRun?->status === 'ready' || $latestAiRun?->status === 'approved')
+                            <div class="space-y-5 p-6">
+                                <div class="rounded-lg border border-[#D7C7F2] bg-white p-4">
+                                    <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#7042A5]">Resumen ejecutivo</p>
+                                    <p class="mt-2 whitespace-pre-line text-sm leading-6 text-[#3F3A32]">{{ $aiResult['executive_summary'] ?? 'Sin resumen disponible.' }}</p>
+                                </div>
+
+                                <div class="grid gap-3 lg:grid-cols-3">
+                                    @foreach ([
+                                        'introduction' => 'Introducción propuesta',
+                                        'event_description' => 'Descripción propuesta',
+                                        'conclusion' => 'Conclusión propuesta',
+                                    ] as $field => $label)
+                                        <article class="rounded-lg border border-[#E8DDF7] bg-white p-4">
+                                            <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#7042A5]">{{ $label }}</p>
+                                            <p class="mt-2 whitespace-pre-line text-sm leading-6 text-[#3F3A32]">{{ data_get($aiResult, "report.{$field}") ?: 'Sin propuesta.' }}</p>
+                                        </article>
+                                    @endforeach
+                                </div>
+
+                                @if (! empty($aiResult['items']))
+                                    <details class="rounded-lg border border-[#E8DDF7] bg-white">
+                                        <summary class="cursor-pointer px-4 py-3 text-sm font-bold text-[#17150F]">
+                                            Propuestas de redacción por ítem ({{ count($aiResult['items']) }})
+                                        </summary>
+                                        <div class="divide-y divide-[#E8DDF7] border-t border-[#E8DDF7]">
+                                            @foreach (array_slice((array) $aiResult['items'], 0, 20) as $suggestion)
+                                                <article class="space-y-2 px-4 py-4 text-sm">
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <span class="font-mono font-bold text-[#7042A5]">{{ $suggestion['ref'] ?? 'Sin referencia' }}</span>
+                                                        <span class="rounded-full bg-[#F3F1EC] px-2 py-0.5 text-xs font-semibold text-[#5F584A]">{{ $suggestion['priority'] ?? 'media' }}</span>
+                                                    </div>
+                                                    <p class="text-[#3F3A32]"><strong>Texto:</strong> {{ $suggestion['revised_narrative'] ?? 'Sin propuesta.' }}</p>
+                                                    <p class="text-[#5F584A]"><strong>Hallazgo:</strong> {{ $suggestion['finding'] ?? 'Sin hallazgo.' }}</p>
+                                                    <p class="text-[#5F584A]"><strong>Recomendación:</strong> {{ $suggestion['recommendation'] ?? 'Sin recomendación.' }}</p>
+                                                </article>
+                                            @endforeach
+                                        </div>
+                                    </details>
+                                @endif
+
+                                @if (! empty($aiResult['quality_issues']))
+                                    <div>
+                                        <div class="mb-2 flex items-center justify-between gap-3">
+                                            <h3 class="text-sm font-bold text-[#17150F]">Revisiones detectadas</h3>
+                                            <span class="rounded-full bg-[#FBEEDA] px-2.5 py-1 text-xs font-semibold text-[#8F520A]">{{ count($aiResult['quality_issues']) }}</span>
+                                        </div>
+                                        <ul class="space-y-2">
+                                            @foreach ($aiResult['quality_issues'] as $issue)
+                                                <li class="rounded-lg border border-[#E8D6A8] bg-[#FFFAEC] p-3 text-sm text-[#5F584A]"><span class="font-bold text-[#8F520A]">{{ strtoupper($issue['priority'] ?? 'media') }}</span> · {{ $issue['message'] ?? '' }} <span class="text-xs">({{ $issue['source_ref'] ?? 'informe' }})</span></li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+
+                                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DDF7] pt-4">
+                                    <p class="text-xs text-[#8A8274]">Ejecución {{ $latestAiRun->created_at?->format('d/m/Y H:i') }} · {{ $latestAiRun->input_tokens ?? '—' }} tokens de entrada · costo estimado USD {{ $latestAiRun->cost_usd ?? '—' }}</p>
+                                    @if ($latestAiRun->status === 'ready')
+                                        <form method="POST" action="{{ route('reports.ai.approve', [$report, $latestAiRun]) }}">
+                                            @csrf
+                                            <flux:button type="submit" variant="primary" icon="check">Aprobar y aplicar textos</flux:button>
+                                        </form>
+                                    @else
+                                        <span class="rounded-full bg-[#E7F3EC] px-3 py-1.5 text-xs font-semibold text-[#2C7549]">Aprobado</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-3 px-6 py-5 text-sm text-[#5F584A]">
+                                <flux:icon.sparkles class="size-5 text-[#7042A5]" /> Genere un borrador para revisar el informe con IA.
+                            </div>
+                        @endif
+                    </section>
+                @endif
 
                 @foreach ([['Programación artística', $artisticItems, '#C9A043'], ['Técnico y logística', $technicalItems, '#17150F']] as [$sectionTitle, $sectionItems, $sectionAccent])
                     <section class="overflow-hidden border border-[#D3CBBB] bg-white">

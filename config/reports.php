@@ -41,4 +41,26 @@ return [
         'quality' => 82,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Agente IA de informes
+    |--------------------------------------------------------------------------
+    |
+    | Permanece apagado por defecto. El agente genera un borrador; nunca
+    | modifica ni publica un informe sin aprobación explícita del usuario.
+    |
+    */
+
+    'ai' => [
+        'enabled' => (bool) env('AI_REPORTS_ENABLED', false),
+        'api_key' => env('OPENAI_API_KEY'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'model' => env('OPENAI_REPORTS_MODEL', 'gpt-5.4-mini'),
+        'timeout' => (int) env('OPENAI_REPORTS_TIMEOUT', 120),
+        'max_output_tokens' => (int) env('OPENAI_REPORTS_MAX_OUTPUT_TOKENS', 6000),
+        'prompt_version' => env('OPENAI_REPORTS_PROMPT_VERSION', 'v1'),
+        'input_cost_usd' => (float) env('OPENAI_REPORTS_INPUT_COST_USD', 0.75),
+        'output_cost_usd' => (float) env('OPENAI_REPORTS_OUTPUT_COST_USD', 4.50),
+    ],
+
 ];

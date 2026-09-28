@@ -54,6 +54,17 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('throttle:6,1')
         ->name('reports.pdf.generate');
 
+    Route::post('informes/{report}/ia/borrador', [ReportController::class, 'generateAiDraft'])
+        ->middleware('throttle:6,1')
+        ->name('reports.ai.generate');
+
+    Route::get('informes/{report}/ia/estado', [ReportController::class, 'aiStatus'])
+        ->name('reports.ai.status');
+
+    Route::post('informes/{report}/ia/{run}/aprobar', [ReportController::class, 'approveAiDraft'])
+        ->middleware('throttle:12,1')
+        ->name('reports.ai.approve');
+
     Route::get('informes/{report}/pdf/estado', [ReportController::class, 'pdfStatus'])
         ->name('reports.pdf.status');
 
