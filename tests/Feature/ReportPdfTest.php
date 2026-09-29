@@ -53,7 +53,10 @@ class ReportPdfTest extends TestCase
 
         $signed = URL::temporarySignedRoute('reports.pdf.render', now()->addMinutes(5), ['report' => $this->report->id]);
 
-        $this->get($signed)->assertOk()->assertSee('INFORME DE');
+        $this->get($signed)
+            ->assertOk()
+            ->assertSee('INFORME DE')
+            ->assertSee('images/brand/rys-logo.jpeg', false);
     }
 
     public function test_downloading_a_missing_pdf_returns_not_found(): void

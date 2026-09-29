@@ -16,8 +16,8 @@
 
             <div class="relative z-10 flex w-full max-w-[27rem] flex-col">
                 <a href="{{ route('home') }}" class="group flex items-center gap-3" wire:navigate>
-                    <span class="flex size-12 items-center justify-center border border-[#C9A043] bg-[#17150F] text-[#E2C274]">
-                        <span class="font-display text-xs font-bold tracking-[0.08em]">RYS</span>
+                    <span class="flex size-12 items-center justify-center overflow-hidden border border-[#C9A043] bg-black">
+                        <x-app-logo-image class="size-full" />
                     </span>
                     <span>
                         <span class="font-display block text-xl font-bold tracking-[-0.025em] text-[#17150F]">Grupo RYS</span>

@@ -15,7 +15,8 @@
         .cover-photo { position: absolute; inset: 0 0 auto auto; width: 78%; height: 61%; object-fit: cover; object-position: center 42%; clip-path: polygon(31% 0, 100% 0, 100% 100%, 0 94%); }
         .cover-brand { position: absolute; inset: 0 auto auto 0; width: 48%; height: 42%; background: #050504; clip-path: polygon(0 0, 100% 0, 67% 100%, 0 65%); }
         .cover-brand::after { content: ''; position: absolute; left: -8%; bottom: 21%; width: 110%; height: 2px; background: #C9A043; transform: rotate(33deg); transform-origin: left center; }
-        .cover-logo { position: absolute; left: 22mm; top: 10mm; display: grid; width: 46mm; height: 46mm; place-items: center; border: 2px solid #C9A043; border-radius: 9999px; color: #E2C274; font: 700 30px Archivo, sans-serif; letter-spacing: -.04em; }
+        .cover-logo { position: absolute; left: 22mm; top: 10mm; width: 46mm; height: 46mm; overflow: hidden; border: 2px solid #C9A043; border-radius: 4mm; background: #000; }
+        .cover-logo img { width: 100%; height: 100%; object-fit: contain; }
         .cover-copy { position: absolute; left: 10mm; right: 14mm; top: 188mm; z-index: 2; text-align: left; }
         .cover-bottom { position: absolute; inset: auto 0 0; height: 27mm; background: #050504; clip-path: polygon(0 82%, 100% 30%, 100% 100%, 0 100%); }
         .cover-bottom::before { content: ''; position: absolute; left: -2%; right: -2%; top: 47%; height: 2px; background: #C9A043; transform: rotate(-4deg); }
@@ -55,7 +56,7 @@
                 <div class="cover-photo bg-[#DED8CC]"></div>
             @endif
             <div class="cover-brand">
-                <div class="cover-logo">RYS</div>
+                <div class="cover-logo"><img src="{{ asset('images/brand/rys-logo.jpeg') }}" alt="Grupo RYS"></div>
             </div>
             <div class="cover-copy">
                 <h1 class="font-display text-[46px] font-extrabold leading-[.96] tracking-[-.035em] text-black">INFORME DE<br>ACTIVIDADES</h1>
