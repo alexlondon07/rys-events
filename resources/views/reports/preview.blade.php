@@ -115,8 +115,8 @@
 
         @foreach ($report->items as $item)
             @php($layout = $item->photo_layout ?: 'pair')
-            @php($gridClass = $layout === 'single' ? 'grid-cols-1' : 'grid-cols-2')
-            @php($imageClass = $layout === 'single' ? 'h-[140mm]' : 'h-64')
+            @php($gridClass = 'grid-cols-1')
+            @php($imageClass = $layout === 'single' ? 'h-[140mm]' : 'h-[78mm]')
             @php($evidence = $item->evidenceLink())
 
             <section class="report-page">
@@ -177,7 +177,7 @@
                                     @foreach ($photoChunk as $photo)
                                         <figure class="overflow-hidden rounded-lg border border-[#E3DED3]">
                                             @if ($photo->fullUrl())
-                                                <img src="{{ $photo->fullUrl() }}" alt="{{ $photo->caption }}" class="{{ $imageClass }} w-full object-cover" referrerpolicy="no-referrer">
+                                                <img src="{{ $photo->fullUrl() }}" alt="{{ $photo->caption }}" class="{{ $imageClass }} w-full bg-[#F3F1EC] object-contain" referrerpolicy="no-referrer">
                                             @endif
                                             <figcaption class="p-3 text-xs text-[#5F584A]">{{ $photo->caption ?: 'Sin título' }}</figcaption>
                                         </figure>

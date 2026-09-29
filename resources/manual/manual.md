@@ -99,7 +99,7 @@ Dentro de cada ítem (pasos 3 y 4) está la sección **Evidencia fotográfica**.
 - **Subir fotos**: JPG, PNG o WEBP, hasta el límite indicado por foto y por ítem. Las fotos se **optimizan** automáticamente (se reducen y comprimen) para que el PDF no pese de más. Los **HEIC** del iPhone deben convertirse antes.
 - **Leyenda**: cada foto puede llevar un texto (idealmente una línea del requerimiento del contrato).
 - **Ordenar**: arrastre las fotos (o use las flechas) para cambiar el orden.
-- **Distribución**: elija **1 por página**, **2 por página** o **Collage (hasta 4)**. El collage se arma solo, en una imagen 2x2.
+- **Distribución**: elija **1 por página**, **2 por página** (una debajo de otra, a mayor tamaño) o **Collage (hasta 4)**. El collage se arma solo, en una imagen 2x2.
 
 ### Evidencia por enlace
 

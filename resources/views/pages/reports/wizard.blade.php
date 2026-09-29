@@ -1034,7 +1034,7 @@ new #[Title('Editar informe')] class extends Component {
                     </flux:select>
                     <flux:select wire:model.live="items.{{ $index }}.photo_layout" label="Distribución de fotos">
                         <flux:select.option value="single">1 por página</flux:select.option>
-                        <flux:select.option value="pair">2 por página</flux:select.option>
+                        <flux:select.option value="pair">2 por página, una debajo de otra</flux:select.option>
                         <flux:select.option value="collage">Collage (hasta 4 por página)</flux:select.option>
                     </flux:select>
                 </div>
