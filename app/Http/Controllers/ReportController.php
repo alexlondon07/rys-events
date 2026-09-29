@@ -240,6 +240,40 @@ class ReportController extends Controller
         ]);
     }
 
+    /** Cancela una ejecución pendiente o descarta el resultado si la llamada ya comenzó. */
+    public function cancelAiDraft(Report $report, ReportAiRun $run): RedirectResponse
+    {
+        Gate::authorize('update', $report);
+        abort_unless(config('reports.ai.enabled'), 404);
+        abort_unless($run->report_id === $report->id, 404);
+
+        $cancelled = DB::transaction(function () use ($report, $run): bool {
+            $lockedRun = ReportAiRun::query()
+                ->where('report_id', $report->id)
+                ->lockForUpdate()
+                ->findOrFail($run->id);
+
+            if (! in_array($lockedRun->status, ['queued', 'processing'], true)) {
+                return false;
+            }
+
+            $lockedRun->update([
+                'status' => 'cancelled',
+                'error' => 'Cancelado por el usuario.',
+                'completed_at' => now(),
+            ]);
+
+            return true;
+        });
+
+        return back()->with(
+            $cancelled ? 'status' : 'error',
+            $cancelled
+                ? 'Generación cancelada. Si la llamada a IA ya había comenzado, puede terminar y generar un costo; su resultado será descartado.'
+                : 'La ejecución ya terminó o fue cancelada.',
+        );
+    }
+
     /**
      * Aplica únicamente los textos que el usuario aprobó desde el último borrador.
      */

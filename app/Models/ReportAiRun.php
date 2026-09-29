@@ -38,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ReportAiRun extends Model
 {
     /** @var list<string> */
-    public const STATUSES = ['queued', 'processing', 'ready', 'approved', 'failed'];
+    public const STATUSES = ['queued', 'processing', 'ready', 'approved', 'failed', 'cancelled'];
 
     protected function casts(): array
     {

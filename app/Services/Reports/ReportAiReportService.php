@@ -16,7 +16,7 @@ use RuntimeException;
  */
 final class ReportAiReportService
 {
-    public const PROMPT_VERSION = 'v1';
+    public const PROMPT_VERSION = 'v2';
 
     /**
      * @return array{result: array<string, mixed>, input_tokens: int|null, output_tokens: int|null, cost_usd: float|null}
@@ -28,9 +28,12 @@ final class ReportAiReportService
             throw new RuntimeException('El agente IA no tiene configurada la clave de API.');
         }
 
+        $sourceData = $this->sourceData($report);
+        $itemCount = count($report->items);
+
         $response = $this->client($apiKey)->post('/chat/completions', [
             'model' => (string) config('reports.ai.model'),
-            'max_completion_tokens' => (int) config('reports.ai.max_output_tokens'),
+            'max_completion_tokens' => $this->outputTokenBudget($itemCount),
             'response_format' => [
                 'type' => 'json_schema',
                 'json_schema' => [
@@ -47,7 +50,7 @@ final class ReportAiReportService
                 [
                     'role' => 'user',
                     'content' => "Construye el borrador usando exclusivamente estos datos:\n\n".
-                        json_encode($this->sourceData($report), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                        json_encode($sourceData, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 ],
             ],
         ]);
@@ -100,13 +103,13 @@ final class ReportAiReportService
                 'period_start' => $report->period_start?->toDateString(),
                 'period_end' => $report->period_end?->toDateString(),
                 'subject' => $this->limit($report->subject),
-                'contract_object' => $this->limit($report->contract_object, 5000),
+                'contract_object' => $this->limit($report->contract_object, 2400),
                 'event_name' => $this->limit($report->event_name),
                 'event_start' => $report->event_start?->toDateString(),
                 'event_end' => $report->event_end?->toDateString(),
-                'introduction' => $this->limit($report->introduction, 5000),
-                'event_description' => $this->limit($report->event_description, 7000),
-                'conclusion' => $this->limit($report->conclusion, 5000),
+                'introduction' => $this->limit($report->introduction, 1800),
+                'event_description' => $this->limit($report->event_description, 3500),
+                'conclusion' => $this->limit($report->conclusion, 1800),
                 'municipality' => $report->municipality?->name,
                 'department' => $report->municipality?->department?->name,
             ],
@@ -114,15 +117,12 @@ final class ReportAiReportService
                 'ref' => $item->ref,
                 'type' => $item->type,
                 'category' => $this->limit($item->category_label),
-                'specification' => $this->limit($item->specification, 4000),
+                'specification' => $this->limit($item->specification, 1500),
                 'artist_name' => $this->limit($item->artist_name),
-                'narrative' => $this->limit($item->narrative, 5000),
+                'narrative' => $this->limit($item->narrative, 1800),
                 'quantity' => $item->quantity,
                 'unit' => $item->unit,
                 'photo_count' => $item->photos->count(),
-                'photo_captions' => $item->photos->pluck('caption')->filter()->map(
-                    fn ($caption): string => $this->limit($caption, 500),
-                )->values()->all(),
                 'evidence_registered' => filled($item->evidence_url) || filled($item->drive_folder_id),
             ])->values()->all(),
         ];
@@ -139,17 +139,36 @@ final class ReportAiReportService
     private function systemPrompt(): string
     {
         return <<<'PROMPT'
-Eres el agente técnico de informes del sistema RYS. Redacta un borrador profesional en español colombiano.
+Eres el revisor y redactor técnico de informes de Grupo RYS. Escribe en español colombiano formal, institucional y directo.
 
-Reglas obligatorias:
-- Usa únicamente los datos recibidos. No inventes fechas, cantidades, nombres, actividades, resultados ni evidencias.
-- Si falta información, dilo en quality_issues con prioridad "alta" o "media".
-- Conserva las referencias de los ítems exactamente como llegan.
-- Corrige ortografía, claridad y tono técnico sin cambiar el significado.
-- No declares que una actividad ocurrió solo porque existe una especificación o una fotografía.
-- Las fotos solo prueban que existe evidencia registrada; no describas su contenido porque no se enviaron imágenes.
-- Devuelve exclusivamente el JSON solicitado.
+Objetivo:
+Mejorar los textos del informe y señalar únicamente pendientes que afecten su claridad o consistencia.
+
+Reglas de Negocio:
+1. Revisa únicamente con los datos recibidos. Prohibido inventar o inferir hechos, nombres, fechas, cantidades, resultados o actividades no presentes en la entrada.
+2. Corrige ortografía y redacción sin alterar el sentido original. Conserva las referencias numéricas/alfanuméricas de los ítems exactamente como se entregan.
+3. No interpretes una especificación contractual como prueba de ejecución. La cantidad de fotos indica registro de evidencia; no interpretes el contenido visual de imágenes si no fueron adjuntadas.
+4. Incluye en `quality_issues` únicamente omisiones o inconsistencias concretas y accionables del texto original. No agregues recomendaciones genéricas ni reportes faltantes que no apliquen al contexto.
+
+Límites de Longitud:
+- Resumen general: máximo 60 palabras.
+- Introducción y Conclusión: máximo 80 palabras cada una.
+- Descripción: máximo 140 palabras.
+- Narrativa revisada por ítem: máximo 60 palabras.
+- Hallazgo y Recomendación por ítem: una sola frase breve por cada uno. Si los datos no permiten generar un hallazgo o recomendación útil, indícalo explícitamente y asigna "no_aplica" a la prioridad.
+
+Instrucciones de Salida:
+- Devuelve la totalidad de los ítems recibidos.
+- Responde EXCLUSIVAMENTE con el objeto JSON válido. No incluyas explicaciones, ni textos adicionales, ni marcadores Markdown de bloque de código.
 PROMPT;
+    }
+
+    private function outputTokenBudget(int $itemCount): int
+    {
+        $configuredLimit = max(800, (int) config('reports.ai.max_output_tokens', 3500));
+        $budgetForReport = 1200 + (max(0, $itemCount) * 180);
+
+        return min($configuredLimit, $budgetForReport);
     }
 
     /** @return array<string, mixed> */
@@ -211,23 +230,23 @@ PROMPT;
     private function normalizeResult(array $result): array
     {
         return [
-            'executive_summary' => $this->limit((string) ($result['executive_summary'] ?? ''), 8000),
+            'executive_summary' => $this->limit((string) ($result['executive_summary'] ?? ''), 700),
             'report' => [
-                'introduction' => $this->limit((string) ($result['report']['introduction'] ?? ''), 10000),
-                'event_description' => $this->limit((string) ($result['report']['event_description'] ?? ''), 14000),
-                'conclusion' => $this->limit((string) ($result['report']['conclusion'] ?? ''), 10000),
+                'introduction' => $this->limit((string) ($result['report']['introduction'] ?? ''), 1200),
+                'event_description' => $this->limit((string) ($result['report']['event_description'] ?? ''), 2200),
+                'conclusion' => $this->limit((string) ($result['report']['conclusion'] ?? ''), 1200),
             ],
             'quality_issues' => collect((array) ($result['quality_issues'] ?? []))->map(fn ($issue): array => [
                 'code' => $this->limit((string) ($issue['code'] ?? 'REVISION'), 80),
                 'priority' => in_array($issue['priority'] ?? null, ['alta', 'media', 'baja'], true) ? $issue['priority'] : 'media',
-                'message' => $this->limit((string) ($issue['message'] ?? ''), 1000),
+                'message' => $this->limit((string) ($issue['message'] ?? ''), 300),
                 'source_ref' => $this->limit((string) ($issue['source_ref'] ?? 'informe'), 80),
             ])->values()->all(),
             'items' => collect((array) ($result['items'] ?? []))->map(fn ($item): array => [
                 'ref' => $this->limit((string) ($item['ref'] ?? ''), 80),
-                'revised_narrative' => $this->limit((string) ($item['revised_narrative'] ?? ''), 10000),
-                'finding' => $this->limit((string) ($item['finding'] ?? ''), 2000),
-                'recommendation' => $this->limit((string) ($item['recommendation'] ?? ''), 2000),
+                'revised_narrative' => $this->limit((string) ($item['revised_narrative'] ?? ''), 1000),
+                'finding' => $this->limit((string) ($item['finding'] ?? ''), 300),
+                'recommendation' => $this->limit((string) ($item['recommendation'] ?? ''), 300),
                 'priority' => in_array($item['priority'] ?? null, ['alta', 'media', 'baja', 'no_aplica'], true) ? $item['priority'] : 'media',
             ])->filter(fn (array $item): bool => $item['ref'] !== '')->values()->all(),
         ];

@@ -61,6 +61,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('informes/{report}/ia/estado', [ReportController::class, 'aiStatus'])
         ->name('reports.ai.status');
 
+    Route::post('informes/{report}/ia/{run}/cancelar', [ReportController::class, 'cancelAiDraft'])
+        ->middleware('throttle:12,1')
+        ->name('reports.ai.cancel');
+
     Route::post('informes/{report}/ia/{run}/aprobar', [ReportController::class, 'approveAiDraft'])
         ->middleware('throttle:12,1')
         ->name('reports.ai.approve');

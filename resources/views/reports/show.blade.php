@@ -233,7 +233,7 @@
                                 if (! response.ok) return;
                                 const data = await response.json();
                                 this.status = data.status;
-                                if (data.status === 'ready' || data.status === 'failed') {
+                                if (['ready', 'failed', 'cancelled'].includes(data.status)) {
                                     clearInterval(this.timer);
                                     window.location.reload();
                                 }
@@ -250,13 +250,29 @@
                         </div>
 
                         @if ($latestAiRun?->status === 'queued' || $latestAiRun?->status === 'processing')
-                            <div class="flex items-center gap-3 px-6 py-5 text-sm font-semibold text-[#7042A5]" x-show="busy">
-                                <flux:icon.arrow-path class="size-5 animate-spin" /> El agente está preparando el borrador…
+                            <div class="flex flex-col justify-between gap-4 px-6 py-5 sm:flex-row sm:items-center" x-show="busy">
+                                <div class="flex items-center gap-3 text-sm font-semibold text-[#7042A5]">
+                                    <flux:icon.arrow-path class="size-5 animate-spin" />
+                                    @if ($latestAiRun->status === 'queued')
+                                        En cola: esperando a que un trabajador inicie el borrador…
+                                    @else
+                                        El agente está redactando y revisando el informe…
+                                    @endif
+                                </div>
+                                <form method="POST" action="{{ route('reports.ai.cancel', [$report, $latestAiRun]) }}">
+                                    @csrf
+                                    <flux:button type="submit" variant="outline" icon="x-mark">Cancelar generación</flux:button>
+                                </form>
                             </div>
+                            <p class="px-6 pb-4 text-xs text-[#8A8274]">Si la solicitud ya llegó al proveedor, puede terminar y generar costo; el resultado se descartará.</p>
                         @elseif ($latestAiRun?->status === 'failed')
                             <div class="m-5 flex items-start gap-3 rounded-lg border border-[#F1C4BE] bg-[#F9E3E0] p-4 text-sm text-[#A8261D]">
                                 <flux:icon.exclamation-triangle class="mt-0.5 size-5 shrink-0" />
                                 <div><p class="font-semibold">No se pudo generar el borrador IA.</p><p class="mt-1">{{ $latestAiRun->error }}</p></div>
+                            </div>
+                        @elseif ($latestAiRun?->status === 'cancelled')
+                            <div class="m-5 rounded-lg border border-[#E3DED3] bg-[#F7F5F0] p-4 text-sm text-[#5F584A]">
+                                Generación cancelada. Puede iniciar un nuevo borrador cuando lo desee.
                             </div>
                         @elseif ($latestAiRun?->status === 'ready' || $latestAiRun?->status === 'approved')
                             <div class="space-y-5 p-6">
@@ -314,7 +330,15 @@
                                 @endif
 
                                 <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DDF7] pt-4">
-                                    <p class="text-xs text-[#8A8274]">Ejecución {{ $latestAiRun->created_at?->format('d/m/Y H:i') }} · {{ $latestAiRun->input_tokens ?? '—' }} tokens de entrada · costo estimado USD {{ $latestAiRun->cost_usd ?? '—' }}</p>
+                                    <p class="text-xs text-[#8A8274]">
+                                        Ejecución {{ $latestAiRun->created_at?->format('d/m/Y H:i') }} ·
+                                        {{ $latestAiRun->input_tokens ?? '—' }} tokens de entrada ·
+                                        {{ $latestAiRun->output_tokens ?? '—' }} de salida
+                                        @if ($latestAiRun->started_at && $latestAiRun->completed_at)
+                                            · {{ $latestAiRun->started_at->diffInSeconds($latestAiRun->completed_at) }} s
+                                        @endif
+                                        · costo estimado USD {{ $latestAiRun->cost_usd ?? '—' }} · prompt {{ $latestAiRun->prompt_version }}
+                                    </p>
                                     @if ($latestAiRun->status === 'ready')
                                         <form method="POST" action="{{ route('reports.ai.approve', [$report, $latestAiRun]) }}">
                                             @csrf
